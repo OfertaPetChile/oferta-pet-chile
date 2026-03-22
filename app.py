@@ -18,7 +18,7 @@ query = st.text_input("Busca un alimento o producto:", "")
 
 if query:
     # Consulta simple a tu tabla de productos
-    res = supabase.table("productos_web").select("*").ilike("nombre", f"%{query}%").limit(24).execute()
+    res = supabase.table("productos_web").select("*").ilike("nombre_producto", f"%{query}%").limit(24).execute()
     
     if res.data:
         df = pd.DataFrame(res.data)
