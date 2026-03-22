@@ -17,11 +17,28 @@ st.write("Encuentra el mejor precio para tu mascota.")
 query = st.text_input("Busca un alimento o producto:", "")
 
 if query:
-    # Consulta simple a tu tabla de productos
-    res = supabase.table("productos_web").select("*").ilike("nombre_producto", f"%{query}%").limit(24).execute()
+    # 1. Buscamos en 'nombre_producto' ignorando mayúsculas/minúsculas
+    res = supabase.table("productos_web").select("*").ilike("nombre_producto", f"%{query}%").execute()
     
     if res.data:
         df = pd.DataFrame(res.data)
-        st.dataframe(df)
+        
+        # 2. Configuramos las columnas para que se vean bien
+        # Usamos nombres que existan en tu tabla según tu imagen anterior
+        columnas = ["nombre_producto", "mi_sku", "imagen_url"]
+        df_final = df[[c for c in columnas if c in df.columns]]
+        
+        # 3. Mostramos los resultados en una tabla bonita
+        st.write(f"Resultados para: **{query}**")
+        st.dataframe(
+            df_final, 
+            column_config={
+                "imagen_url": st.column_config.ImageColumn("Vista Previa"),
+                "nombre_producto": "Producto",
+                "mi_sku": "SKU"
+            },
+            hide_index=True,
+            use_container_width=True
+        )
     else:
-        st.warning("No encontramos ofertas para ese producto por ahora.")
+        st.warning(f"No hay resultados exactos para '{query}'. Prueba con otra palabra (ej: 'Cat it' o 'Voyageur').")
