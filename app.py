@@ -11,81 +11,106 @@ key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
 # --- LÓGICA DE NAVEGACIÓN ---
-# Revisamos si hay un SKU seleccionado en la URL
 params = st.query_params
 selected_sku = params.get("sku")
 
-# 3. ESTILOS CSS
+# 3. ESTILOS CSS (Ajustados para Card Unificada)
 st.markdown("""
     <style>
     .product-card {
         background-color: white;
-        border-radius: 10px;
-        padding: 10px;
+        border-radius: 12px;
+        padding: 15px;
         border: 1px solid #eee;
-        height: 320px;
+        height: 380px;
         text-align: center;
-        margin-bottom: 10px;
+        transition: 0.3s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .product-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
     .product-title {
-        font-size: 13px;
+        font-size: 14px;
         font-weight: 600;
-        height: 40px;
+        height: 45px;
         overflow: hidden;
-        margin-top: 8px;
+        margin-top: 10px;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+    .ver-detalle-text {
+        color: #1abc9c;
+        font-weight: bold;
+        font-size: 15px;
+        margin-top: 5px;
+    }
+    /* Estilo para que el botón de Streamlit parezca parte de la card */
+    div.stButton > button {
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
         color: #333;
     }
-    .price-range {
-        color: #2ecc71;
-        font-size: 16px;
-        font-weight: bold;
+    div.stButton > button:hover {
+        background-color: #1abc9c;
+        color: white;
+        border-color: #1abc9c;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- VISTA 2: DETALLE DEL PRODUCTO ---
+# --- VISTA 2: HOJA DE DETALLE (Comparativa) ---
 if selected_sku:
-    if st.button("⬅️ Volver al inicio"):
+    if st.button("⬅️ Volver a la galería"):
         st.query_params.clear()
         st.rerun()
 
-    # Aquí llamarías a tu gráfica de precios e historial (Paso siguiente)
-    st.title(f"Detalle del Producto: {selected_sku}")
-    st.info("Aquí insertaremos la gráfica de 3 meses y la lista de tiendas oficiales.")
-    # (Lógica de historial de precios irá aquí)
+    # Buscamos el nombre oficial en Maestro_SKU
+    res_maestro = supabase.table("Maestro_SKU").select("nombre_maestro").eq("mi_sku", selected_sku).single().execute()
+    nombre_oficial = res_maestro.data["nombre_maestro"] if res_maestro.data else "Producto"
 
-# --- VISTA 1: GALERÍA PRINCIPAL ---
+    st.title(f"📊 Comparativa: {nombre_oficial}")
+    st.write(f"Viendo historial de precios para el SKU: {selected_sku}")
+    
+    # Aquí irá tu lógica de historial de 3 meses en el siguiente paso
+    st.info("Próximo paso: Gráfica de evolución y lista de tiendas oficiales.")
+
+# --- VISTA 1: GALERÍA PRINCIPAL (Maestro_SKU) ---
 else:
     st.title("🐾 Oferta Pet Chile")
     query = st.text_input("Busca tu producto...", placeholder="Ej: Leonardo, Cat it...")
 
     if query:
         q = query.strip().upper()
-        # Traemos productos únicos agrupados por mi_sku en la mente de Python
-        res = supabase.table("productos_web").select("*").or_(f"nombre_producto.ilike.%{q}%,mi_sku.ilike.%{q}%").execute()
+        
+        # BUSQUEDA EN MAESTRO_SKU (Nombres oficiales)
+        res = supabase.table("Maestro_SKU").select("*").or_(f"nombre_maestro.ilike.%{q}%,mi_sku.ilike.%{q}%").execute()
 
         if res.data:
-            df = pd.DataFrame(res.data)
-            # Agrupamos para mostrar solo una tarjeta por SKU
-            df_unicos = df.drop_duplicates(subset=['mi_sku'])
+            df_maestro = pd.DataFrame(res.data)
             
-            # 5 Columnas para que sea compacto
+            # 5 Columnas
             cols = st.columns(5)
             
-            for idx, row in df_unicos.iterrows():
+            for idx, row in df_maestro.iterrows():
                 with cols[idx % 5]:
-                    with st.container():
-                        st.markdown(f"""
-                        <div class="product-card">
-                            <img src="{row['imagen_url']}" style="width:100%; height:150px; object-fit:contain;">
-                            <div class="product-title">{row['nombre_producto']}</div>
-                            <p class="price-range">Ver comparativa</p>
+                    # La Card HTML
+                    st.markdown(f"""
+                    <div class="product-card">
+                        <img src="{row['imagen_url_maestra']}" style="width:100%; height:160px; object-fit:contain;">
+                        <div>
+                            <div class="product-title">{row['nombre_maestro']}</div>
+                            <div class="ver-detalle-text">Ver comparativa</div>
                         </div>
-                        """, unsafe_allow_html=True)
-                        
-                        # Al hacer clic, actualizamos la URL con el SKU
-                        if st.button("Ver detalle", key=row['mi_sku'], use_container_width=True):
-                            st.query_params.sku = row['mi_sku']
-                            st.rerun()
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # El botón justo debajo, pero visualmente "pegado" por el diseño
+                    if st.button("Ver detalle", key=f"btn_{row['mi_sku']}", use_container_width=True):
+                        st.query_params.sku = row['mi_sku']
+                        st.rerun()
         else:
-            st.info("No encontramos ese producto.")
+            st.info("No encontramos coincidencias en el catálogo maestro.")
