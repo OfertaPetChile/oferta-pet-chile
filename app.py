@@ -17,39 +17,44 @@ st.write("Encuentra el mejor precio para tu mascota.")
 query = st.text_input("Busca un alimento o producto:", "")
 
 if query:
-    # 1. Limpieza de la búsqueda
-    q = query.strip().upper() 
+    q = query.strip().upper()
     
-    # 2. Consulta simplificada: Buscamos coincidencia en nombre O en sku
-    # Nota: Usamos .or_ con una sintaxis que Supabase entiende siempre
-    try:
-        res = supabase.table("productos_web") \
-            .select("*") \
-            .or_(f"nombre_producto.ilike.%{q}%,mi_sku.ilike.%{q}%") \
-            .execute()
+    # 1. Buscamos en productos_web y pedimos que traiga los datos de historial_precios
+    # Usamos mi_sku como puente entre ambas tablas
+    res = supabase.table("productos_web") \
+        .select("nombre_producto, mi_sku, imagen_url, enlace_tienda, historial_precios(precio, fecha)") \
+        .or_(f"nombre_producto.ilike.%{q}%,mi_sku.ilike.%{q}%") \
+        .execute()
 
-        if res.data and len(res.data) > 0:
-            df = pd.DataFrame(res.data)
-            st.success(f"Se encontraron {len(df)} resultados")
+    if res.data:
+        # 2. Aplanamos los datos para que Streamlit los entienda
+        datos_planos = []
+        for item in res.data:
+            # Sacamos el precio más reciente de la lista de historial
+            precios = item.get("historial_precios", [])
+            ultimo_precio = precios[0]["precio"] if precios else "N/A"
             
-            # Mostramos la tabla básica para confirmar que hay datos
-            columnas_existentes = [c for c in ["nombre_producto", "mi_sku", "precio", "imagen_url"] if c in df.columns]
-            st.dataframe(df[columnas_existentes], use_container_width=True)
-        else:
-            # Si no hay resultados, probamos una búsqueda aún más simple (solo por una palabra)
-            primera_palabra = q.split()[0]
-            st.info(f"Buscando términos similares a '{primera_palabra}'...")
-            
-            res_retry = supabase.table("productos_web") \
-                .select("*") \
-                .ilike("nombre_producto", f"%{primera_palabra}%") \
-                .execute()
-                
-            if res_retry.data:
-                st.write("Quizás quisiste decir:")
-                st.dataframe(pd.DataFrame(res_retry.data)[["nombre_producto", "mi_sku"]], use_container_width=True)
-            else:
-                st.error("No se encontró nada. Verifica que la tabla 'productos_web' tenga datos en Supabase.")
-                
-    except Exception as e:
-        st.error(f"Error de conexión: {e}")
+            datos_planos.append({
+                "Producto": item["nombre_producto"],
+                "SKU": item["mi_sku"],
+                "Precio": ultimo_precio,
+                "Imagen": item["imagen_url"],
+                "Link": item["enlace_tienda"]
+            })
+        
+        df = pd.DataFrame(datos_planos)
+        st.success(f"Encontramos {len(df)} coincidencias:")
+        
+        # 3. Mostramos la tabla profesional
+        st.dataframe(
+            df,
+            column_config={
+                "Imagen": st.column_config.ImageColumn("Vista"),
+                "Precio": st.column_config.NumberColumn("Precio", format="$ %d"),
+                "Link": st.column_config.LinkColumn("Ir a la tienda")
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+    else:
+        st.warning(f"No hay resultados para '{query}'. Prueba con 'CAT IT' o 'VOYAGEUR'.")
