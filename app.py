@@ -17,50 +17,39 @@ st.write("Encuentra el mejor precio para tu mascota.")
 query = st.text_input("Busca un alimento o producto:", "")
 
 if query:
-    # 1. Separamos la búsqueda en palabras (ej: "Leonardo" y "Senior")
-    palabras = query.split()
+    # 1. Limpieza de la búsqueda
+    q = query.strip().upper() 
     
-    # 2. Iniciamos la consulta
-    rpc_query = supabase.table("productos_web").select("*")
-    
-    # 3. FILTRO MULTI-COLUMNA: 
-    # Para cada palabra que escriba el usuario, buscamos coincidencias en 
-    # nombre_producto, nombre_tienda (si la tienes) y mi_sku.
-    for palabra in palabras:
-        # Usamos .or_ para que busque en cualquiera de esas columnas
-        # Si tienes una columna con el nombre original de la tienda, agrégala aquí
-        condicion = f"nombre_producto.ilike.%{palabra}%,mi_sku.ilike.%{palabra}%"
-        rpc_query = rpc_query.or_(condicion)
-    
-    res = rpc_query.execute()
+    # 2. Consulta simplificada: Buscamos coincidencia en nombre O en sku
+    # Nota: Usamos .or_ con una sintaxis que Supabase entiende siempre
+    try:
+        res = supabase.table("productos_web") \
+            .select("*") \
+            .or_(f"nombre_producto.ilike.%{q}%,mi_sku.ilike.%{q}%") \
+            .execute()
 
-    if res.data:
-        df = pd.DataFrame(res.data)
-        
-        # 4. Agrupamos por mi_sku para que el usuario vea la "Ficha Única"
-        # y debajo o al lado vea las diferentes ofertas.
-        st.success(f"Resultados encontrados:")
-
-        for sku, grupo in df.groupby("mi_sku"):
-            with st.container():
-                # Mostramos un encabezado por cada producto único (mi_sku)
-                col1, col2 = st.columns([1, 4])
+        if res.data and len(res.data) > 0:
+            df = pd.DataFrame(res.data)
+            st.success(f"Se encontraron {len(df)} resultados")
+            
+            # Mostramos la tabla básica para confirmar que hay datos
+            columnas_existentes = [c for c in ["nombre_producto", "mi_sku", "precio", "imagen_url"] if c in df.columns]
+            st.dataframe(df[columnas_existentes], use_container_width=True)
+        else:
+            # Si no hay resultados, probamos una búsqueda aún más simple (solo por una palabra)
+            primera_palabra = q.split()[0]
+            st.info(f"Buscando términos similares a '{primera_palabra}'...")
+            
+            res_retry = supabase.table("productos_web") \
+                .select("*") \
+                .ilike("nombre_producto", f"%{primera_palabra}%") \
+                .execute()
                 
-                # Intentamos sacar la imagen del primer registro del grupo
-                with col1:
-                    img = grupo["imagen_url"].iloc[0] if "imagen_url" in grupo.columns else None
-                    if img:
-                        st.image(img, width=100)
+            if res_retry.data:
+                st.write("Quizás quisiste decir:")
+                st.dataframe(pd.DataFrame(res_retry.data)[["nombre_producto", "mi_sku"]], use_container_width=True)
+            else:
+                st.error("No se encontró nada. Verifica que la tabla 'productos_web' tenga datos en Supabase.")
                 
-                with col2:
-                    nombre_principal = grupo["nombre_producto"].iloc[0]
-                    st.subheader(f"{nombre_principal}")
-                    st.caption(f"SKU Interno: {sku}")
-                
-                # Mostramos la tablita de precios de las distintas tiendas para ESE SKU
-                columnas_tienda = ["nombre_tienda", "precio", "url_producto"] # Ajusta según tus nombres
-                df_tiendas = grupo[[c for c in columnas_tienda if c in grupo.columns]]
-                st.table(df_tiendas)
-                st.divider()
-    else:
-        st.warning(f"No encontramos nada para '{query}'. Intenta con términos más generales.")
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
