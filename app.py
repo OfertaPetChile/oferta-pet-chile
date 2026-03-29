@@ -107,82 +107,56 @@ if selected_sku:
     # 3. Layout de Columnas (1:3)
     col_izq, col_der = st.columns([1, 2.5])
 
-    # --- COLUMNA IZQUIERDA: TABLA ORDENADA ULTRA-COMPACTA ---
+# --- COLUMNA IZQUIERDA: LISTA LINEAL COMPACTA ---
     with col_izq:
-        # Usamos markdown para el título con un poco menos de margen inferior
-        st.markdown("<h3 style='margin-bottom: 10px;'>💰 Mejores Ofertas</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='margin-bottom: 15px;'>💰 Mejores Ofertas</h3>", unsafe_allow_html=True)
         
-        # ORDENAR DE MENOR A MAYOR (Esto se mantiene igual)
+        # Ordenamos de menor a mayor
         df_precios = pd.DataFrame(datos_tabla).sort_values(by="Precio", ascending=True)
 
-        # Contenedor para aplicar scroll interno SOLO a la lista si fuera muy larga,
-        # pero intentando que quepan la mayoría sin scroll.
-        with st.container():
-            for i, row in df_precios.iterrows():
-                precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
-                
-                # Estilo condicional para el más barato (borde verde sutil)
-                es_primero = (i == df_precios.index[0])
-                border_style = "2px solid #2ecc71" if es_primero else "1px solid #e0e0e0"
-                bg_color = "#f0fff4" if es_primero else "#ffffff"
+        for i, row in df_precios.iterrows():
+            precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
+            
+            # Estilo sutil para el más barato
+            es_primero = (i == df_precios.index[0])
+            bg_color = "#f0fff4" if es_primero else "white"
+            border_color = "#2ecc71" if es_primero else "#eee"
 
-                # --- HTML LINEAL Y COMPACTO ---
-                # Explicación del diseño:
-                # - flexbox para alinear todo en una fila.
-                # - padding mínimo (5px arriba/abajo) para reducir altura.
-                # - display: grid en el interior para columnas fijas.
-                st.markdown(f"""
-                    <div style="
-                        display: grid;
-                        grid-template-columns: 1fr auto auto;
-                        align-items: center;
-                        gap: 10px;
-                        background-color: {bg_color};
-                        padding: 5px 10px;
-                        border-radius: 6px;
-                        border: {border_style};
-                        margin-bottom: 5px;
-                        box-shadow: 0 1px 2px rgba(0,0,0,0.03);
-                        height: 40px; /* Altura fija y baja para cada fila */
-                    ">
-                        <div style="
-                            font-size: 13px;
-                            color: #7f8c8d;
-                            font-weight: bold;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        ">
-                            {row['Tienda']}
-                        </div>
-                        
-                        <div style="
-                            font-size: 16px;
-                            font-weight: 800;
-                            color: #2c3e50;
-                            text-align: right;
-                            white-space: nowrap;
-                        ">
-                            {precio_cl}
-                        </div>
-                        
-                        <a href="{row['URL']}" target="_blank" style="
-                            display: inline-block;
-                            text-align: center;
-                            background-color: #1abc9c;
-                            color: white;
-                            padding: 4px 10px;
-                            border-radius: 4px;
-                            text-decoration: none;
-                            font-weight: bold;
-                            font-size: 12px;
-                            white-space: nowrap;
-                        ">
-                            🛒 Ver
-                        </a>
+            # Diseño en una sola fila (Tienda | Precio | Botón)
+            st.markdown(f"""
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background-color: {bg_color};
+                    padding: 6px 10px;
+                    border-radius: 6px;
+                    border: 1px solid {border_color};
+                    margin-bottom: 4px;
+                    gap: 8px;
+                ">
+                    <div style="flex: 1; font-size: 13px; font-weight: bold; color: #7f8c8d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {row['Tienda']}
                     </div>
-                """, unsafe_allow_html=True)
-
+                    
+                    <div style="font-size: 15px; font-weight: 800; color: #2c3e50;">
+                        {precio_cl}
+                    </div>
+                    
+                    <a href="{row['URL']}" target="_blank" style="
+                        background-color: #1abc9c;
+                        color: white;
+                        padding: 3px 8px;
+                        border-radius: 4px;
+                        text-decoration: none;
+                        font-weight: bold;
+                        font-size: 11px;
+                        white-space: nowrap;
+                    ">
+                        Ver
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
     # --- COLUMNA DERECHA: GRÁFICA ---
     with col_der:
         st.subheader("📈 Historial")
