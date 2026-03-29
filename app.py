@@ -69,53 +69,76 @@ if selected_sku:
         st.query_params.clear()
         st.rerun()
 
-    # 1. Función de Gráfica Actualizada
-    def mostrar_grafica_comparativa(sku_id):
-        # Buscamos en 'Productos' usando el mi_sku
-        res_prod = supabase.table("Productos").select("id_producto, nombre_tienda").eq("mi_sku", sku_id).execute()
-        
-        if not res_prod.data:
-            st.warning("No hay tiendas vinculadas a este producto.")
-            return
-
-        fig = go.Figure()
-        
-        for p in res_prod.data:
-            # Buscamos historial por el ID único (MD5)
-            res_hist = supabase.table("Historial_precios")\
-                .select("fecha, precio")\
-                .eq("id_producto", p['id_producto'])\
-                .order("fecha")\
-                .execute()
-            
-            df_h = pd.DataFrame(res_hist.data)
-            
-            if not df_h.empty:
-                fig.add_trace(go.Scatter(
-                    x=df_h['fecha'], 
-                    y=df_h['precio'], 
-                    mode='lines+markers',
-                    name=p['nombre_tienda'],
-                    hovertemplate=f"<b>{p['nombre_tienda']}</b><br>Precio: $%{{y:,.0f}}<extra></extra>".replace(",", ".")
-                ))
-
-        fig.update_layout(
-            template="plotly_white",
-            hovermode="x unified",
-            xaxis_title="Fecha",
-            yaxis_title="Precio ($)",
-            legend=dict(orientation="h", y=-0.2),
-            separators=",."
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # Obtener nombre oficial para el título
+    # 1. Traer datos de SKUs_unicos
     res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
     nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
 
     st.title(f"📊 {nombre_oficial}")
-    mostrar_grafica_comparativa(selected_sku)
+    st.divider()
 
+    # 2. Preparación de Datos (Productos + Historial)
+    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
+    
+    if not res_prod.data:
+        st.warning("No hay ofertas disponibles para este producto.")
+        st.stop()
+
+    datos_tabla = []
+    historiales_grafica = {}
+
+    for p in res_prod.data:
+        res_hist = supabase.table("Historial_precios")\
+            .select("fecha, precio")\
+            .eq("id_producto", p['id_producto'])\
+            .order("fecha", desc=True).execute()
+        
+        df_h = pd.DataFrame(res_hist.data)
+        
+        if not df_h.empty:
+            # Para la tabla (Precio actual)
+            datos_tabla.append({
+                "Tienda": p['nombre_tienda'],
+                "Precio": df_h.iloc[0]['precio'],
+                "URL": p['url_tienda']
+            })
+            # Para la gráfica (Historial completo)
+            historiales_grafica[p['nombre_tienda']] = df_h.sort_values(by="fecha")
+
+    # 3. Layout de Columnas (1:3)
+    col_izq, col_der = st.columns([1, 2.5])
+
+    # --- COLUMNA IZQUIERDA: TABLA ORDENADA ---
+    with col_izq:
+        st.subheader("💰 Mejores Ofertas")
+        
+        # ORDENAR DE MENOR A MAYOR
+        df_precios = pd.DataFrame(datos_tabla).sort_values(by="Precio", ascending=True)
+
+        for i, row in df_precios.iterrows():
+            precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
+            
+            # Estilo especial para el más barato
+            es_primero = (i == df_precios.index[0])
+            bg_color = "#f0fff4" if es_primero else "#ffffff"
+            border_color = "#2ecc71" if es_primero else "#e0e0e0"
+            
+            st.markdown(f"""
+                <div style="background-color:{bg_color}; padding:15px; border-radius:10px; border:2px solid {border_color}; margin-bottom:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <p style="margin:0; font-size:12px; color:#7f8c8d; font-weight:bold;">{row['Tienda']}</p>
+                    <h3 style="margin:5px 0; color:#2c3e50;">{precio_cl}</h3>
+                    <a href="{row['URL']}" target="_blank" style="display:block; text-align:center; background-color:#1abc9c; color:white; padding:8px; border-radius:5px; text-decoration:none; font-weight:bold; font-size:13px;">🛒 Ver en tienda</a>
+                </div>
+            """, unsafe_allow_html=True)
+
+    # --- COLUMNA DERECHA: GRÁFICA ---
+    with col_der:
+        st.subheader("📈 Historial")
+        fig = go.Figure()
+        for tienda, df in historiales_grafica.items():
+            fig.add_trace(go.Scatter(x=df['fecha'], y=df['precio'], name=tienda, mode='lines+markers'))
+        
+        fig.update_layout(template="plotly_white", margin=dict(l=10, r=10, t=10, b=10), height=450, separators=",.")
+        st.plotly_chart(fig, use_container_width=True)
 
 # --- VISTA 1: GALERÍA PRINCIPAL (Corregida con nuevos nombres de columna) ---
 else:
