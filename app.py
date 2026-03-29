@@ -107,54 +107,57 @@ if selected_sku:
     # 3. Layout de Columnas (1:3)
     col_izq, col_der = st.columns([1, 2.5])
 
-# --- COLUMNA IZQUIERDA: LISTA LINEAL COMPACTA ---
+    # --- COLUMNA IZQUIERDA: TABLA ORDENADA (Versión Compacta) ---
     with col_izq:
-        st.markdown("<h3 style='margin-bottom: 15px;'>💰 Mejores Ofertas</h3>", unsafe_allow_html=True)
+        st.subheader("💰 Mejores Ofertas")
         
-        # Ordenamos de menor a mayor
+        # ORDENAR DE MENOR A MAYOR
         df_precios = pd.DataFrame(datos_tabla).sort_values(by="Precio", ascending=True)
 
         for i, row in df_precios.iterrows():
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             
-            # Estilo sutil para el más barato
+            # Estilo especial para el más barato (Borde verde sutil)
             es_primero = (i == df_precios.index[0])
-            bg_color = "#f0fff4" if es_primero else "white"
-            border_color = "#2ecc71" if es_primero else "#eee"
-
-            # Diseño en una sola fila (Tienda | Precio | Botón)
+            bg_color = "#f0fff4" if es_primero else "#ffffff"
+            border_color = "#2ecc71" if es_primero else "#e0e0e0"
+            
+            # Diseño Lineal: Tienda | Precio | Botón
             st.markdown(f"""
                 <div style="
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    background-color: {bg_color};
-                    padding: 6px 10px;
-                    border-radius: 6px;
-                    border: 1px solid {border_color};
-                    margin-bottom: 4px;
-                    gap: 8px;
+                    display: flex; 
+                    justify-content: space-between; 
+                    align-items: center; 
+                    background-color: {bg_color}; 
+                    padding: 6px 10px; 
+                    border-radius: 8px; 
+                    border: 1px solid {border_color}; 
+                    margin-bottom: 6px; 
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
                 ">
-                    <div style="flex: 1; font-size: 13px; font-weight: bold; color: #7f8c8d; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                        {row['Tienda']}
+                    <div style="flex: 1; min-width: 0; margin-right: 10px;">
+                        <p style="margin:0; font-size:11px; color:#7f8c8d; font-weight:bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            {row['Tienda']}
+                        </p>
                     </div>
-                    
-                    <div style="font-size: 15px; font-weight: 800; color: #2c3e50;">
-                        {precio_cl}
+                    <div style="margin-right: 15px;">
+                        <span style="font-size: 14px; font-weight: 800; color: #2c3e50;">{precio_cl}</span>
                     </div>
-                    
-                    <a href="{row['URL']}" target="_blank" style="
-                        background-color: #1abc9c;
-                        color: white;
-                        padding: 3px 8px;
-                        border-radius: 4px;
-                        text-decoration: none;
-                        font-weight: bold;
-                        font-size: 11px;
-                        white-space: nowrap;
-                    ">
-                        Ver
-                    </a>
+                    <div>
+                        <a href="{row['URL']}" target="_blank" style="
+                            display: inline-block; 
+                            background-color: #1abc9c; 
+                            color: white; 
+                            padding: 4px 10px; 
+                            border-radius: 4px; 
+                            text-decoration: none; 
+                            font-weight: bold; 
+                            font-size: 11px;
+                            white-space: nowrap;
+                        ">
+                            🛒 Ver
+                        </a>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
     # --- COLUMNA DERECHA: GRÁFICA ---
