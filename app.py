@@ -64,24 +64,25 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # --- VISTA 2: HOJA DE DETALLE (Comparativa) ---
-# --- VISTA 2: HOJA DE DETALLE (Comparativa) ---
 if selected_sku:
     if st.button("⬅️ Volver a la galería"):
         st.query_params.clear()
         st.rerun()
 
-    # 1. Definición de la Función (Punto 2)
+    # 1. Definición de la Función de Gráfica (Punto 2)
     def mostrar_grafica_comparativa(sku_id):
-        # Paso A: Buscar todos los IDs de producto asociados al SKU
+        # Paso A: Buscar todos los IDs de producto (id_producto) asociados a ese mi_sku
+        # Tabla: Productos
         res_prod = supabase.table("Productos").select("id_producto, nombre_tienda").eq("mi_sku", sku_id).execute()
         
         if not res_prod.data:
-            st.warning("No hay tiendas registradas para este producto aún.")
+            st.warning("No hay tiendas vinculadas a este SKU en la tabla 'Productos'.")
             return
 
         fig = go.Figure()
         
-        # Paso B: Bucle para traer historial de cada tienda
+        # Paso B: Bucle para traer el historial de cada tienda/id_producto
+        # Tabla: Historial_precios
         for p in res_prod.data:
             res_hist = supabase.table("Historial_precios")\
                 .select("fecha, precio")\
@@ -96,32 +97,35 @@ if selected_sku:
                     x=df_h['fecha'], 
                     y=df_h['precio'], 
                     mode='lines+markers',
-                    name=p['nombre_tienda']
+                    name=p['nombre_tienda'],
+                    hovertemplate=f"<b>{p['nombre_tienda']}</b><br>Precio: $%{{y:,.0f}}<extra></extra>".replace(",", ".")
                 ))
 
-        # Paso C: Formato rápido
+        # Paso C: Formato de la gráfica
         fig.update_layout(
             template="plotly_white",
             hovermode="x unified",
-            xaxis_title="Fecha",
+            xaxis_title="Fecha de registro",
             yaxis_title="Precio ($)",
-            legend=dict(orientation="h", y=-0.2)
+            legend=dict(orientation="h", y=-0.2),
+            margin=dict(l=20, r=20, t=20, b=20),
+            separators=",." # Formato decimal/miles chileno
         )
         
         st.plotly_chart(fig, use_container_width=True)
 
-    # --- RENDERIZADO DE LA VISTA ---
-    # Buscamos el nombre oficial
-    res_maestro = supabase.table("Maestro_SKU").select("nombre_maestro").eq("mi_sku", selected_sku).single().execute()
-    nombre_oficial = res_maestro.data["nombre_maestro"] if res_maestro.data else "Producto"
+    # --- RENDERIZADO DE LA VISTA DE DETALLE ---
+    # Buscamos el nombre oficial en SKUs_unicos (antes Maestro_SKU)
+    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
+    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
 
-    st.title(f"📊 Comparativa: {nombre_oficial}")
+    st.title(f"📊 {nombre_oficial}")
+    st.caption(f"ID de producto interno (SKU): {selected_sku}")
     
     # 2. Llamada a la Visualización (Punto 3)
-    # Reemplazamos el st.info por la función
     mostrar_grafica_comparativa(selected_sku)
 
-# --- VISTA 1: GALERÍA PRINCIPAL ---
+    # (Próximamente: Lista de tiendas con precios actuales y links)
 
 # --- VISTA 1: GALERÍA PRINCIPAL (Maestro_SKU) ---
 else:
@@ -132,7 +136,7 @@ else:
         q = query.strip().upper()
         
         # BUSQUEDA EN MAESTRO_SKU (Nombres oficiales)
-        res = supabase.table("Maestro_SKU").select("*").or_(f"nombre_maestro.ilike.%{q}%,mi_sku.ilike.%{q}%").execute()
+        res = supabase.table("SKUs_unicos").select("mi_sku").or_(f"nombre_maestro.ilike.%{q}%,mi_sku.ilike.%{q}%").execute()
 
         if res.data:
             df_maestro = pd.DataFrame(res.data)
