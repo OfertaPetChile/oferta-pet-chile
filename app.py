@@ -66,7 +66,7 @@ st.markdown("""
 
 # --- VISTA 2: HOJA DE DETALLE (Con Indicador de Color en Tarjeta) ---
 if selected_sku:
-    if st.button("⬅️ Volver a la galería"):
+    if st.button("⬅️ Volver a la galería"):
        st.query_params.clear()
        st.rerun()
 
