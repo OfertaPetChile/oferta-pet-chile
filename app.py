@@ -106,12 +106,41 @@ if selected_sku:
     df_raw = pd.DataFrame(datos_tabla)
     
     # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
-    # Usamos todas las tiendas únicas para que ninguna quede fuera del diccionario
-    tiendas_unicas = sorted(df_raw['Tienda'].unique())
-    paleta_amplia = pc.sample_colorscale("Turbo", len(tiendas_unicas), low=0.0, high=1.0)
-    # Si prefieres colores más sólidos/mate, puedes usar esta alternativa:
-    #paleta_amplia = pc.qualitative.Alphabet + pc.qualitative.Dark24
-    mapa_colores = {tienda: paleta_amplia[i] for i, tienda in enumerate(tiendas_unicas)}
+    colores_fijos = {
+        # AZULES Y CIANES (Separados por saturación)
+        "Laika": "#00ADEE",            # Cian brillante
+        "Laika Member": "#0054A6",     # Azul marino (Contrasta con el cian)
+        "Amigales": "#22B14C",         # Verde esmeralda (Cian-verdoso)
+        "Braloy": "#00B7C2",           # Turquesa
+        "Distribuidora Lira": "#1E2A39", # Azul Petróleo Muy Oscuro
+
+        # ROJOS, NARANJAS Y AMARILLOS
+        "Superzoo": "#ED1C24",         # Rojo puro
+        "Punto Mascotas": "#000000",   # Negro (Para que destaque sobre cualquier color)
+        "Tus Mascotas": "#F7941D",     # Naranja
+        "Razaspet": "#FFF200",         # Amarillo (Cuidado: en gráfico usar un poco más oscuro #FFD700)
+        "Pet Kingdom": "#BE1E2D",      # Guinda / Rojo oscuro
+
+        # VERDES Y OTROS
+        "BestForPets": "#8CC63F",      # Verde lima
+        "JardinZoo": "#006837",        # Verde bosque
+        "Petvet": "#603813",           # Café (Color caca/tierra muy distinto al resto)
+        "CPyG": "#662D91",             # Morado
+        "PetBJ": "#92278F",            # Fucsia / Violeta
+    }
+
+    # 2. ASIGNACIÓN ROBUSTA
+    tiendas_unicas = df_raw['Tienda'].unique()
+    import plotly.colors as pc
+    # Paleta de respaldo por si aparece una tienda nueva que no está en el diccionario
+    respaldo = pc.qualitative.Alphabet 
+
+    mapa_colores = {}
+    for i, tienda in enumerate(tiendas_unicas):
+        if tienda in colores_fijos:
+            mapa_colores[tienda] = colores_fijos[tienda]
+        else:
+            mapa_colores[tienda] = respaldo[i % len(respaldo)]
     
     # 4. LÓGICA DE PRIORIDAD Y ORDENAMIENTO
     df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
