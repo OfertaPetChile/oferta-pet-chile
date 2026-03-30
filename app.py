@@ -124,25 +124,25 @@ if selected_sku:
             tienda = row['Tienda']
             esta_agotado = (row['Disponibilidad'] == 'Agotado')
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
-            color_tienda = mapa_colores[tienda]
+            color_tienda = mapa_colores[tienda] # El color de la serie Plotly
             
-            # La mejor oferta solo se resalta si está en stock
             es_top = (i == 0 and not esta_agotado)
             
-            # Estilos dinámicos
+            # Estilos dinámicos: Mantenemos el color de la tienda activo
             bg_color = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
             border_color = '#2ecc71' if es_top else '#eee'
-            text_color = '#999' if esta_agotado else '#333'
-            opacidad = '0.6' if esta_agotado else '1.0'
+            text_color = '#333' # Texto legible para identificar la tienda
+            opacidad = '0.65' if esta_agotado else '1.0' # Un poco menos de transparencia para ver el color
 
             c_check, c_card = st.columns([0.1, 0.9])
             with c_check:
-                seleccion_tiendas[tienda] = st.checkbox("", value=(not esta_agotado), key=f"ch_{tienda}_{selected_sku}")
+                # Marcamos por defecto aunque esté agotado para que se vea la línea en el gráfico
+                seleccion_tiendas[tienda] = st.checkbox("", value=True, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                # Renderizado de la tarjeta
-                badge_agotado = '<span style="background-color:#e74c3c; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">AGOTADO</span>' if esta_agotado else ''
+                badge_agotado = '<span style="background-color:#e74c3c; color:white; padding:1px 5px; border-radius:4px; font-size:10px; margin-top:2px; display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
+                # Botón visualmente desactivado
                 btn_style = "background-color:#ccc; cursor:not-allowed;" if esta_agotado else "background-color:#1abc9c;"
                 link_attr = 'onclick="return false;"' if esta_agotado else ""
 
@@ -152,16 +152,20 @@ if selected_sku:
                                 padding:6px 12px; border-radius:8px; 
                                 border:1px solid {border_color}; 
                                 opacity: {opacidad};
-                                margin-bottom:6px; height:48px;">
-                        <div style="display:flex; align-items:center; width:150px; flex-shrink:0;">
-                            <div style="width:12px; height:12px; border-radius:50%; background-color:{color_tienda if not esta_agotado else '#ccc'}; margin-right:8px;"></div>
-                            <div style="font-size:13px; font-weight:800; color:{text_color}; overflow:hidden;">
-                                {tienda} {badge_agotado}
+                                margin-bottom:6px; height:52px;">
+                        
+                        <div style="display:flex; align-items:center; width:160px; flex-shrink:0;">
+                            <div style="width:14px; height:14px; border-radius:50%; background-color:{color_tienda}; margin-right:10px; border: 1px solid rgba(0,0,0,0.1);"></div>
+                            <div style="display:flex; flex-direction:column;">
+                                <div style="font-size:13px; font-weight:800; color:{text_color}; line-height:1;">{tienda}</div>
+                                {badge_agotado}
                             </div>
                         </div>
+
                         <div style="flex-grow:1; text-align:right; margin-right:12px;">
                             <span style="font-size:14px; font-weight:800; color:{text_color};">{precio_cl}</span>
                         </div>
+
                         <a href="{row['URL']}" {link_attr} target="_blank" 
                            style="{btn_style} color:white; padding:5px 12px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">
                            { "Sin Stock" if esta_agotado else "Ir al sitio" }
