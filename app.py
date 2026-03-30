@@ -108,9 +108,9 @@ if selected_sku:
     # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
     # Usamos todas las tiendas únicas para que ninguna quede fuera del diccionario
     tiendas_unicas = sorted(df_raw['Tienda'].unique())
-    #paleta_amplia = pc.sample_colorscale("Turbo", len(tiendas_unicas), low=0.0, high=1.0)
+    paleta_amplia = pc.sample_colorscale("Turbo", len(tiendas_unicas), low=0.0, high=1.0)
     # Si prefieres colores más sólidos/mate, puedes usar esta alternativa:
-    paleta_amplia = pc.qualitative.Alphabet + pc.qualitative.Dark24
+    #paleta_amplia = pc.qualitative.Alphabet + pc.qualitative.Dark24
     mapa_colores = {tienda: paleta_amplia[i] for i, tienda in enumerate(tiendas_unicas)}
     
     # 4. LÓGICA DE PRIORIDAD Y ORDENAMIENTO
