@@ -2,7 +2,7 @@ import streamlit as st
 from supabase import create_client
 import pandas as pd
 import plotly.graph_objects as go
-import plotly.express as px
+import plotly.colors as pc
 
 # 1. Configuración de página
 st.set_page_config(
@@ -107,10 +107,11 @@ if selected_sku:
     
     # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
     # Usamos todas las tiendas únicas para que ninguna quede fuera del diccionario
-    tiendas_unicas = df_raw['Tienda'].unique()
-    colores_disponibles = px.colors.qualitative.Plotly
-    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
-                    for i, tienda in enumerate(tiendas_unicas)}
+    tiendas_unicas = sorted(df_raw['Tienda'].unique())
+    paleta_amplia = pc.sample_colorscale("Turbo", len(tiendas_unicas), low=0.0, high=1.0)
+    # Si prefieres colores más sólidos/mate, puedes usar esta alternativa:
+    # paleta_amplia = pc.qualitative.Alphabet + pc.qualitative.Dark24
+    mapa_colores = {tienda: paleta_amplia[i] for i, tienda in enumerate(tiendas_unicas)}
     
     # 4. LÓGICA DE PRIORIDAD Y ORDENAMIENTO
     df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
