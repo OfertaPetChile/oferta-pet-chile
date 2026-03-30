@@ -125,43 +125,46 @@ if selected_sku:
             esta_agotado = (row['Disponibilidad'] == 'Agotado')
             es_top = (i == 0 and not esta_agotado)
             
-            # Variables de estilo
+            # 1. Configuración de estilos
             opacidad_info = "0.5" if esta_agotado else "1.0"
             bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
             border_card = '#2ecc71' if es_top else '#eee'
             btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-            
+            btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
+            p_events = "none" if esta_agotado else "auto"
+
+            # 2. Columnas de Streamlit para el Checkbox y la Tarjeta
             c_check, c_card = st.columns([0.1, 0.9])
+            
             with c_check:
-                # Se mantiene activo el check para ver el punto en la gráfica siempre
                 seleccion_tiendas[tienda] = st.checkbox("", value=True, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                badge_html = f'<span style="background-color:#e74c3c; color:white; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold; margin-top:3px; display:inline-block;">AGOTADO</span>' if esta_agotado else ''
+                # 3. Construcción del HTML sin indentaciones internas que rompan Streamlit
+                badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
-                st.markdown(f'''
-                    <div style="display:flex; justify-content:space-between; align-items:center; 
-                                background-color: {bg_card}; padding:6px 12px; border-radius:8px; 
-                                border:1px solid {border_card}; margin-bottom:6px; height:52px;">
-                        
-                        <div style="display:flex; align-items:center; width:150px; flex-shrink:0;">
-                            <div style="width:13px; height:13px; border-radius:50%; background-color:{color_tienda}; margin-right:10px; flex-shrink:0; box-shadow: 0 0 2px rgba(0,0,0,0.2);"></div>
-                            <div style="display:flex; flex-direction:column; opacity: {opacidad_info};">
-                                <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
-                                {badge_html}
-                            </div>
-                        </div>
-
-                        <div style="flex-grow:1; text-align:right; margin-right:12px; opacity: {opacidad_info};">
-                            <span style="font-size:14px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
-                        </div>
-
-                        <a href="{row['URL']}" target="_blank" style="background-color:{btn_bg}; color:white; padding:5px 12px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap; pointer-events: {'none' if esta_agotado else 'auto'}; opacity: {opacidad_info};">
-                            {"Sin Stock" if esta_agotado else "Ir al sitio"}
-                        </a>
-                    </div>
-                ''', unsafe_allow_html=True)
-
+                html_final = (
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                    f'background-color:{bg_card};padding:6px 12px;border-radius:8px;'
+                    f'border:1px solid {border_card};margin-bottom:6px;height:52px;width:100%;">'
+                    f'<div style="display:flex;align-items:center;width:150px;flex-shrink:0;">'
+                    f'<div style="width:13px;height:13px;border-radius:50%;background-color:{color_tienda};'
+                    f'margin-right:10px;flex-shrink:0;box-shadow:0 0 2px rgba(0,0,0,0.2);"></div>'
+                    f'<div style="display:flex;flex-direction:column;opacity:{opacidad_info};">'
+                    f'<div style="font-size:13px;font-weight:800;color:#333;line-height:1.1;">{tienda}</div>'
+                    f'{badge}'
+                    f'</div></div>'
+                    f'<div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opacidad_info};">'
+                    f'<span style="font-size:14px;font-weight:800;color:#2c3e50;">{precio_cl}</span>'
+                    f'</div>'
+                    f'<a href="{row["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
+                    f'padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
+                    f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
+                    f'</div>'
+                )
+                
+                st.markdown(html_final, unsafe_allow_html=True)
+                
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
