@@ -79,8 +79,8 @@ if selected_sku:
     st.title(f"📊 {nombre_oficial}")
     st.divider()
 
-    # 1. Carga de Datos
-    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
+    # 1. Carga de Datos (Añadimos 'disponibilidad' a la consulta)
+    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
     if not res_prod.data:
         st.warning("Sin ofertas disponibles.")
@@ -94,12 +94,23 @@ if selected_sku:
         df_h = pd.DataFrame(res_hist.data)
         if not df_h.empty:
             tienda = p['nombre_tienda']
-            datos_tabla.append({"Tienda": tienda, "Precio": df_h.iloc[0]['precio'], "URL": p['url_tienda']})
+            # Guardamos disponibilidad para la lógica visual
+            datos_tabla.append({
+                "Tienda": tienda, 
+                "Precio": df_h.iloc[0]['precio'], 
+                "URL": p['url_tienda'],
+                "Disponibilidad": p.get('disponibilidad', 'En Stock')
+            })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
-    # 2. Colores por Tienda
+    # 2. Ordenamiento Inteligente
+    # Primero mostramos los disponibles por precio, luego los agotados al final
+    df_pre = pd.DataFrame(datos_tabla)
+    df_pre['sort_order'] = df_pre['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
+    df_ord = df_pre.sort_values(by=['sort_order', 'Precio']).reset_index(drop=True)
+
+    # Colores por Tienda
     colores_disponibles = px.colors.qualitative.Plotly
-    df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
     mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
                     for i, tienda in enumerate(df_ord['Tienda'].unique())}
 
@@ -111,32 +122,53 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
+            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             color_tienda = mapa_colores[tienda]
-            es_top = (i == 0)
             
+            # La mejor oferta solo se resalta si está en stock
+            es_top = (i == 0 and not esta_agotado)
+            
+            # Estilos dinámicos
+            bg_color = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+            border_color = '#2ecc71' if es_top else '#eee'
+            text_color = '#999' if esta_agotado else '#333'
+            opacidad = '0.6' if esta_agotado else '1.0'
+
             c_check, c_card = st.columns([0.1, 0.9])
             with c_check:
-                seleccion_tiendas[tienda] = st.checkbox("", value=(i < 5), key=f"ch_{tienda}_{selected_sku}")
+                seleccion_tiendas[tienda] = st.checkbox("", value=(not esta_agotado), key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
+                # Renderizado de la tarjeta
+                badge_agotado = '<span style="background-color:#e74c3c; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px;">AGOTADO</span>' if esta_agotado else ''
+                
+                btn_style = "background-color:#ccc; cursor:not-allowed;" if esta_agotado else "background-color:#1abc9c;"
+                link_attr = 'onclick="return false;"' if esta_agotado else ""
+
                 st.markdown(f'''
                     <div style="display:flex; justify-content:space-between; align-items:center; 
-                                background-color: {'#f0fff4' if es_top else 'white'}; 
+                                background-color: {bg_color}; 
                                 padding:6px 12px; border-radius:8px; 
-                                border:1px solid {'#2ecc71' if es_top else '#eee'}; 
-                                margin-bottom:6px; height:45px;">
-                        <div style="display:flex; align-items:center; width:130px; flex-shrink:0;">
-                            <div style="width:12px; height:12px; border-radius:50%; background-color:{color_tienda}; margin-right:8px;"></div>
-                            <div style="font-size:13px; font-weight:800; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{tienda}</div>
+                                border:1px solid {border_color}; 
+                                opacity: {opacidad};
+                                margin-bottom:6px; height:48px;">
+                        <div style="display:flex; align-items:center; width:150px; flex-shrink:0;">
+                            <div style="width:12px; height:12px; border-radius:50%; background-color:{color_tienda if not esta_agotado else '#ccc'}; margin-right:8px;"></div>
+                            <div style="font-size:13px; font-weight:800; color:{text_color}; overflow:hidden;">
+                                {tienda} {badge_agotado}
+                            </div>
                         </div>
                         <div style="flex-grow:1; text-align:right; margin-right:12px;">
-                            <span style="font-size:14px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
+                            <span style="font-size:14px; font-weight:800; color:{text_color};">{precio_cl}</span>
                         </div>
-                        <a href="{row['URL']}" target="_blank" style="background-color:#1abc9c; color:white; padding:5px 15px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">Ir al sitio</a>
+                        <a href="{row['URL']}" {link_attr} target="_blank" 
+                           style="{btn_style} color:white; padding:5px 12px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">
+                           { "Sin Stock" if esta_agotado else "Ir al sitio" }
+                        </a>
                     </div>
                 ''', unsafe_allow_html=True)
-
+                
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
