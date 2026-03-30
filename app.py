@@ -101,43 +101,41 @@ if selected_sku:
                 "Disponibilidad": p.get('disponibilidad', 'En Stock')
             })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
-
-    # 2. Ordenamiento: Stock primero, luego Precio
+            
+    # 2. Crear el DataFrame y la columna de prioridad (0: Stock, 1: Agotado)
     df_raw = pd.DataFrame(datos_tabla)
-    df_raw['orden_stock'] = df_raw['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
-    df_ord = df_raw.sort_values(by=['orden_stock', 'Precio']).reset_index(drop=True)
+    df_raw['prioridad_stock'] = df_raw['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
+    
+    # 3. ORDENAR: Primero disponibilidad, luego precio más bajo
+    df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio']).reset_index(drop=True)
 
-    # Colores por Tienda
-    colores_disponibles = px.colors.qualitative.Plotly
-    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
-                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
-
-    # 3. Diseño de Columnas
-    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
+    # 4. Inicializar contador para la gráfica (Máximo 5 líneas al nacer)
+    contador_grafica = 0
     seleccion_tiendas = {}
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
+            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             color_tienda = mapa_colores[tienda]
-            esta_agotado = (row['Disponibilidad'] == 'Agotado')
+            
+            # LÓGICA DE MARCADO: 
+            # Tratamos a todos por IGUAL. 
+            # Si hay stock y aún no llegamos a 5, se marca para la gráfica.
+            check_inicial = False
+            if not esta_agotado and contador_grafica < 5:
+                check_inicial = True
+                contador_grafica += 1
+            
+            # El borde verde (Top 1) solo para el primero de la lista (que por orden será el más barato con stock)
             es_top = (i == 0 and not esta_agotado)
-            
-            # 1. Configuración de estilos
-            opacidad_info = "0.5" if esta_agotado else "1.0"
-            bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
-            border_card = '#2ecc71' if es_top else '#eee'
-            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-            btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
-            p_events = "none" if esta_agotado else "auto"
 
-            # 2. Columnas de Streamlit para el Checkbox y la Tarjeta
             c_check, c_card = st.columns([0.1, 0.9])
-            
             with c_check:
-                seleccion_tiendas[tienda] = st.checkbox("", value=True, key=f"ch_{tienda}_{selected_sku}")
+                # El checkbox sigue la lógica del contador de arriba
+                seleccion_tiendas[tienda] = st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
                 # 3. Construcción del HTML sin indentaciones internas que rompan Streamlit
