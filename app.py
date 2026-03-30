@@ -79,7 +79,7 @@ if selected_sku:
     st.title(f"📊 {nombre_oficial}")
     st.divider()
 
-    # 1. Carga de Datos (Añadimos 'disponibilidad' a la consulta)
+    # 1. Carga de Datos (Incluimos disponibilidad)
     res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
     if not res_prod.data:
@@ -94,7 +94,6 @@ if selected_sku:
         df_h = pd.DataFrame(res_hist.data)
         if not df_h.empty:
             tienda = p['nombre_tienda']
-            # Guardamos disponibilidad para la lógica visual
             datos_tabla.append({
                 "Tienda": tienda, 
                 "Precio": df_h.iloc[0]['precio'], 
@@ -103,11 +102,10 @@ if selected_sku:
             })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
-    # 2. Ordenamiento Inteligente
-    # Primero mostramos los disponibles por precio, luego los agotados al final
-    df_pre = pd.DataFrame(datos_tabla)
-    df_pre['sort_order'] = df_pre['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
-    df_ord = df_pre.sort_values(by=['sort_order', 'Precio']).reset_index(drop=True)
+    # 2. Ordenamiento: Stock primero, luego Precio
+    df_raw = pd.DataFrame(datos_tabla)
+    df_raw['orden_stock'] = df_raw['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
+    df_ord = df_raw.sort_values(by=['orden_stock', 'Precio']).reset_index(drop=True)
 
     # Colores por Tienda
     colores_disponibles = px.colors.qualitative.Plotly
@@ -122,68 +120,48 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
-            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             color_tienda = mapa_colores[tienda]
-            
+            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             es_top = (i == 0 and not esta_agotado)
             
-            # Configuraciones visuales
-            bg_color = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
-            border_color = '#2ecc71' if es_top else '#eee'
-            # Atenuamos el texto si está agotado
-            text_color = '#999' if esta_agotado else '#333'
-
+            # Variables de estilo
+            opacidad_info = "0.5" if esta_agotado else "1.0"
+            bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+            border_card = '#2ecc71' if es_top else '#eee'
+            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+            
             c_check, c_card = st.columns([0.1, 0.9])
             with c_check:
-                # Mantenemos el check activo por defecto para que sirva de referencia gráfica
+                # Se mantiene activo el check para ver el punto en la gráfica siempre
                 seleccion_tiendas[tienda] = st.checkbox("", value=True, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                # 1. Definir variables de estado
-                opacidad_texto = "0.5" if esta_agotado else "1.0"
-                pointer_event = "none" if esta_agotado else "auto"
-                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                btn_text = "Sin Stock" if esta_agotado else "Ir al sitio"
-                
-                # Badge de agotado
                 badge_html = f'<span style="background-color:#e74c3c; color:white; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold; margin-top:3px; display:inline-block;">AGOTADO</span>' if esta_agotado else ''
-
-                # 2. Construir el string de HTML (F-string)
-                html_card = f'''
-                <div style="display:flex; justify-content:space-between; align-items:center; 
-                            background-color: {bg_color}; 
-                            padding:8px 12px; border-radius:10px; 
-                            border:1px solid {border_color}; 
-                            margin-bottom:6px; height:55px; width:100%;">
-                    
-                    <div style="display:flex; align-items:center; flex-shrink:0;">
-                        <div style="width:14px; height:14px; border-radius:50%; 
-                                    background-color:{color_tienda}; margin-right:10px; 
-                                    box-shadow: 0 0 2px rgba(0,0,0,0.2); flex-shrink:0;"></div>
+                
+                st.markdown(f'''
+                    <div style="display:flex; justify-content:space-between; align-items:center; 
+                                background-color: {bg_card}; padding:6px 12px; border-radius:8px; 
+                                border:1px solid {border_card}; margin-bottom:6px; height:52px;">
                         
-                        <div style="display:flex; flex-direction:column; opacity: {opacidad_texto};">
-                            <div style="font-size:13px; font-weight:800; color:{text_color}; line-height:1.1;">{tienda}</div>
-                            {badge_html}
+                        <div style="display:flex; align-items:center; width:150px; flex-shrink:0;">
+                            <div style="width:13px; height:13px; border-radius:50%; background-color:{color_tienda}; margin-right:10px; flex-shrink:0; box-shadow: 0 0 2px rgba(0,0,0,0.2);"></div>
+                            <div style="display:flex; flex-direction:column; opacity: {opacidad_info};">
+                                <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
+                                {badge_html}
+                            </div>
                         </div>
-                    </div>
 
-                    <div style="flex-grow:1; text-align:right; margin-right:12px; opacity: {opacidad_texto};">
-                        <span style="font-size:14px; font-weight:800; color:{text_color}; font-family: monospace;">{precio_cl}</span>
-                    </div>
+                        <div style="flex-grow:1; text-align:right; margin-right:12px; opacity: {opacidad_info};">
+                            <span style="font-size:14px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
+                        </div>
 
-                    <a href="{row['URL']}" target="_blank" 
-                       style="background-color:{btn_bg}; color:white; padding:6px 12px; border-radius:6px; 
-                              text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;
-                              pointer-events: {pointer_event}; opacity: {opacidad_texto};">
-                       {btn_text}
-                    </a>
-                </div>
-                '''
-                
-                # 3. Renderizar (Asegúrate de que esta línea esté bien indentada)
-                st.markdown(html_card, unsafe_allow_html=True)
-                
+                        <a href="{row['URL']}" target="_blank" style="background-color:{btn_bg}; color:white; padding:5px 12px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap; pointer-events: {'none' if esta_agotado else 'auto'}; opacity: {opacidad_info};">
+                            {"Sin Stock" if esta_agotado else "Ir al sitio"}
+                        </a>
+                    </div>
+                ''', unsafe_allow_html=True)
+
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
