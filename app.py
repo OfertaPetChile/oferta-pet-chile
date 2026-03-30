@@ -2,6 +2,7 @@ import streamlit as st
 from supabase import create_client
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 
 # 1. Configuración de página
 st.set_page_config(page_title="Oferta Pet Chile", page_icon="🐾", layout="wide")
