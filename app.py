@@ -67,43 +67,43 @@ st.markdown("""
 # --- VISTA 2: HOJA DE DETALLE (Con Indicador de Color en Tarjeta) ---
 if selected_sku:
     if st.button("⬅️ Volver a la galería"):
-       st.query_params.clear()
-       st.rerun()
+          st.query_params.clear()
+       st.rerun()
 
-    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
-    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
+    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
+    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
 
-    st.title(f"📊 {nombre_oficial}")
-    st.divider()
+    st.title(f"📊 {nombre_oficial}")
+    st.divider()
 
-    # 1. Carga y Preparación de Datos
-    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
-    
-    if not res_prod.data:
-        st.warning("Sin ofertas disponibles.")
-        st.stop()
+    # 1. Carga y Preparación de Datos
+    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
+    
+    if not res_prod.data:
+        st.warning("Sin ofertas disponibles.")
+        st.stop()
 
-    datos_tabla = []
-    historiales_completos = {}
-    
-    for p in res_prod.data:
-        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
-        df_h = pd.DataFrame(res_hist.data)
-        if not df_h.empty:
-            tienda = p['nombre_tienda']
-            datos_tabla.append({"Tienda": tienda, "Precio": df_h.iloc[0]['precio'], "URL": p['url_tienda']})
-            historiales_completos[tienda] = df_h.sort_values(by="fecha")
+    datos_tabla = []
+    historiales_completos = {}
+    
+    for p in res_prod.data:
+        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
+        df_h = pd.DataFrame(res_hist.data)
+        if not df_h.empty:
+            tienda = p['nombre_tienda']
+            datos_tabla.append({"Tienda": tienda, "Precio": df_h.iloc[0]['precio'], "URL": p['url_tienda']})
+            historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
-    # 2. Asignación de Colores Fijos por Tienda
-    # Usamos la paleta cualitativa de Plotly para que coincidan con el gráfico
-    colores_disponibles = px.colors.qualitative.Plotly # Azul, Rojo, Verde, Morado, Naranja, etc.
-    df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
-    
-    # Creamos un diccionario: Tienda -> Color
-    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
-                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
+    # 2. Asignación de Colores Fijos por Tienda
+    # Usamos la paleta cualitativa de Plotly para que coincidan con el gráfico
+    colores_disponibles = px.colors.qualitative.Plotly # Azul, Rojo, Verde, Morado, Naranja, etc.
+    df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
+    
+    # Creamos un diccionario: Tienda -> Color
+    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
+                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
 
-    # --- 3. DISEÑO DE COLUMNAS ---
+    # --- 3. DISEÑO DE COLUMNAS ---
     col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
 
@@ -188,7 +188,7 @@ if selected_sku:
             st.plotly_chart(fig, use_container_width=True)
         else:
             st.info("Selecciona tiendas a la izquierda para comparar precios.")
-                
+                
 # --- VISTA 1: GALERÍA PRINCIPAL (Corregida con nuevos nombres de columna) ---
 else:
     st.title("🐾 Oferta Pet Chile")
