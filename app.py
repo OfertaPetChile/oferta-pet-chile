@@ -98,23 +98,27 @@ if selected_sku:
                 "Tienda": tienda, 
                 "Precio": df_h.iloc[0]['precio'], 
                 "URL": p['url_tienda'],
-                "Disponibilidad": p.get('disponibilidad', 'En Stock')
+                "Disponibilidad": p.get('disponibilidad')
             })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
-    # 2. ORDENAMIENTO CRÍTICO: Disponibilidad (0: En Stock, 1: Agotado) y luego Precio
+    # 2. ORDENAMIENTO CRÍTICO: Disponibilidad (0: Disponible, 1: Agotado) y luego Precio
     df_raw = pd.DataFrame(datos_tabla)
-    df_raw['prioridad_stock'] = df_raw['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
-    df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio']).reset_index(drop=True)
-
-    # Colores por Tienda
-    colores_disponibles = px.colors.qualitative.Plotly
-    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
-                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
-
-    # 3. DEFINICIÓN DE COLUMNAS (Aquí se definen antes de usarse)
-    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
+    df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
     
+    # Definimos prioridad: 0 para "Disponible", 1 para el resto
+    def definir_prioridad(x):
+        if "Disponible" in x:
+            return 0
+        return 1
+
+    df_raw['prioridad_stock'] = df_raw['Disponibilidad_limpia'].apply(definir_prioridad)
+    
+    # ORDENAR: Primero por stock (0 arriba), luego por Precio (menor a mayor)
+    df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio'], ascending=[True, True]).reset_index(drop=True)
+
+    # --- RENDERIZADO ---
+    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
     contador_grafica = 0
 
@@ -122,23 +126,28 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
+            # Volvemos a chequear para la lógica visual
+            dispo_status = str(row['Disponibilidad']).strip().capitalize()
+            esta_agotado = "Agotado" in dispo_status
+            
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             color_tienda = mapa_colores[tienda]
-            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             
-            # Lógica de Marcado Automático (Trato igualitario para todos)
+            # Marcado automático para la gráfica (Solo los primeros 5 con stock)
             check_inicial = False
             if not esta_agotado and contador_grafica < 5:
                 check_inicial = True
                 contador_grafica += 1
             
-            # Estilos de la tarjeta
+            # El borde verde (Top 1) solo para el primero de la lista (el más barato con stock)
             es_top = (i == 0 and not esta_agotado)
+            
             opacidad_info = "0.5" if esta_agotado else "1.0"
             bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
             border_card = '#2ecc71' if es_top else '#eee'
             btn_bg = "#ccc" if esta_agotado else "#1abc9c"
             btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
+            p_events = "none" if esta_agotado else "auto"
 
             c_check, c_card = st.columns([0.1, 0.9])
             with c_check:
@@ -147,7 +156,7 @@ if selected_sku:
             with c_card:
                 badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
-                html_card = (
+                html_final = (
                     f'<div style="display:flex;justify-content:space-between;align-items:center;'
                     f'background-color:{bg_card};padding:6px 12px;border-radius:8px;'
                     f'border:1px solid {border_card};margin-bottom:6px;height:52px;width:100%;">'
@@ -163,10 +172,11 @@ if selected_sku:
                     f'</div>'
                     f'<a href="{row["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
                     f'padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
-                    f'white-space:nowrap;pointer-events:{"none" if esta_agotado else "auto"};opacity:{opacidad_info};">{btn_txt}</a>'
+                    f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
                     f'</div>'
                 )
-                st.markdown(html_card, unsafe_allow_html=True)
+                st.markdown(html_final, unsafe_allow_html=True)
+    
              
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
