@@ -107,7 +107,7 @@ if selected_sku:
     mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
                     for i, tienda in enumerate(df_ord['Tienda'].unique())}
 
-# --- 3. DISEÑO DE COLUMNAS ---
+    # --- 3. DISEÑO DE COLUMNAS ---
         col_precios, col_grafica = st.columns([1.3, 2.7], gap="large")
         seleccion_tiendas = {}
     
@@ -126,29 +126,29 @@ if selected_sku:
                     seleccion_tiendas[tienda] = st.checkbox("", value=(i < 5), key=f"ch_{tienda}_{selected_sku}")
     
                 with c_card:
-                    # Ajuste: El nombre tiene ancho fijo y el botón es más grande
+                    # Usamos f-string con comillas triples para evitar errores de renderizado
                     st.markdown(f'''
                         <div style="display: flex; justify-content: space-between; align-items: center; 
                                     background-color: {'#f0fff4' if es_top else 'white'}; 
-                                    padding: 6px 10px; border-radius: 6px; 
+                                    padding: 6px 12px; border-radius: 8px; 
                                     border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
-                                    margin-bottom: 5px; height: 42px;">
+                                    margin-bottom: 6px; height: 44px;">
                             
-                            <div style="display: flex; align-items: center; width: 100px; flex-shrink: 0;">
+                            <div style="display: flex; align-items: center; width: 95px; flex-shrink: 0;">
                                 <div style="width: 10px; height: 10px; border-radius: 50%; background-color: {color_tienda}; margin-right: 8px; flex-shrink: 0;"></div>
-                                <div style="font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <div style="font-size: 11px; font-weight: bold; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                     {tienda}
                                 </div>
                             </div>
                             
-                            <div style="flex-grow: 1; text-align: right; margin-right: 10px;">
+                            <div style="flex-grow: 1; text-align: right; margin-right: 12px;">
                                 <span style="font-size: 14px; font-weight: 800; color: #2c3e50;">{precio_cl}</span>
                             </div>
                             
                             <a href="{row['URL']}" target="_blank" style="
                                 background-color: #1abc9c; 
                                 color: white; 
-                                padding: 5px 10px; 
+                                padding: 5px 12px; 
                                 border-radius: 5px; 
                                 text-decoration: none; 
                                 font-weight: bold; 
