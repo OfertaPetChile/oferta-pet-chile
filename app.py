@@ -167,22 +167,7 @@ if selected_sku:
                     f'</div>'
                 )
                 st.markdown(html_card, unsafe_allow_html=True)
-
-    with col_grafica:
-        st.markdown("#### 📈 Evolución Histórica")
-        tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
-        if tiendas_activas:
-            fig = go.Figure()
-            for tienda in tiendas_activas:
-                if tienda in historiales_completos:
-                    df = historiales_completos[tienda]
-                    fig.add_trace(go.Scatter(
-                        x=df['fecha'], y=df['precio'], 
-                        name=tienda, mode='lines+markers',
-                        line=dict(color=mapa_colores[tienda], width=2.5)
-                    ))
-            fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)                
+             
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
