@@ -102,22 +102,27 @@ if selected_sku:
             })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
-    # 2. ORDENAMIENTO CRÍTICO: Disponibilidad (0: Disponible, 1: Agotado) y luego Precio
+    # 2. Crear DataFrame base
     df_raw = pd.DataFrame(datos_tabla)
-    df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
     
-    # Definimos prioridad: 0 para "Disponible", 1 para el resto
+    # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
+    # Usamos todas las tiendas únicas para que ninguna quede fuera del diccionario
+    tiendas_unicas = df_raw['Tienda'].unique()
+    colores_disponibles = px.colors.qualitative.Plotly
+    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
+                    for i, tienda in enumerate(tiendas_unicas)}
+    
+    # 4. LÓGICA DE PRIORIDAD Y ORDENAMIENTO
+    df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
     def definir_prioridad(x):
         if "Disponible" in x:
             return 0
         return 1
 
     df_raw['prioridad_stock'] = df_raw['Disponibilidad_limpia'].apply(definir_prioridad)
-    
-    # ORDENAR: Primero por stock (0 arriba), luego por Precio (menor a mayor)
     df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio'], ascending=[True, True]).reset_index(drop=True)
 
-    # --- RENDERIZADO ---
+    # 5. RENDERIZADO DE COLUMNAS
     col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
     contador_grafica = 0
@@ -176,8 +181,7 @@ if selected_sku:
                     f'</div>'
                 )
                 st.markdown(html_final, unsafe_allow_html=True)
-    
-             
+                
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
