@@ -126,7 +126,7 @@ if selected_sku:
                                 padding:6px 12px; border-radius:8px; 
                                 border:1px solid {'#2ecc71' if es_top else '#eee'}; 
                                 margin-bottom:6px; height:45px;">
-                        <div style="display:flex; align-items:center; width:110px; flex-shrink:0;">
+                        <div style="display:flex; align-items:center; width:130px; flex-shrink:0;">
                             <div style="width:12px; height:12px; border-radius:50%; background-color:{color_tienda}; margin-right:8px;"></div>
                             <div style="font-size:13px; font-weight:800; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{tienda}</div>
                         </div>
