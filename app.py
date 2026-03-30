@@ -64,7 +64,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- VISTA 2: HOJA DE DETALLE (Con Indicador de Color en Tarjeta) ---
+# --- VISTA 2: HOJA DE DETALLE (Ajuste de espacios y botón grande) ---
 if selected_sku:
     if st.button("⬅️ Volver a la galería"):
         st.query_params.clear()
@@ -95,20 +95,19 @@ if selected_sku:
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
     # 2. Asignación de Colores Fijos por Tienda
-    # Usamos la paleta cualitativa de Plotly para que coincidan con el gráfico
-    colores_disponibles = px.colors.qualitative.Plotly # Azul, Rojo, Verde, Morado, Naranja, etc.
+    colores_disponibles = px.colors.qualitative.Plotly
     df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
     
-    # Creamos un diccionario: Tienda -> Color
     mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
                     for i, tienda in enumerate(df_ord['Tienda'].unique())}
 
     # --- 3. DISEÑO DE COLUMNAS ---
-    col_precios, col_grafica = st.columns([1.3, 2.7], gap="large")
+    # Ajustamos un poco el ratio para dar más aire a la tabla (1.4 en lugar de 1.3)
+    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
 
     with col_precios:
-        st.markdown("#### 💰 Ofertas y Colores")
+        st.markdown("#### 💰 Ofertas Actuales")
         
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
@@ -116,29 +115,44 @@ if selected_sku:
             color_tienda = mapa_colores[tienda]
             es_top = (i == 0)
             
-            c_check, c_card = st.columns([0.15, 0.85])
+            # Ajustamos proporción de columnas internas (Checkbox | Card)
+            c_check, c_card = st.columns([0.1, 0.9])
             
             with c_check:
                 seleccion_tiendas[tienda] = st.checkbox("", value=(i < 5), key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                # Añadimos un pequeño círculo de color (Leyenda interna)
+                # DISEÑO AJUSTADO: Nombre con ancho fijo + Precio flexible + Botón Grande
                 st.markdown(f"""
                     <div style="display: flex; justify-content: space-between; align-items: center; 
                                 background-color: {'#f0fff4' if es_top else 'white'}; 
-                                padding: 6px 10px; border-radius: 6px; 
+                                padding: 6px 12px; border-radius: 8px; 
                                 border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
-                                margin-bottom: 5px; height: 38px;">
-                        <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
-                            <div style="width: 10px; height: 10px; border-radius: 50%; background-color: {color_tienda}; margin-right: 8px; flex-shrink: 0;"></div>
-                            <div style="font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                margin-bottom: 6px; height: 45px;">
+                        
+                        <div style="display: flex; align-items: center; width: 110px; flex-shrink: 0;">
+                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: {color_tienda}; margin-right: 8px; flex-shrink: 0;"></div>
+                            <div style="font-size: 11px; font-weight: bold; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 {tienda}
                             </div>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #2c3e50; margin-right: 5px;">
-                            {precio_cl}
+                        
+                        <div style="flex-grow: 1; text-align: right; margin-right: 12px;">
+                            <span style="font-size: 14px; font-weight: 800; color: #2c3e50;">{precio_cl}</span>
                         </div>
-                        <a href="{row['URL']}" target="_blank" style="background-color: #1abc9c; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 10px;">🛒</a>
+                        
+                        <a href="{row['URL']}" target="_blank" style="
+                            background-color: #1abc9c; 
+                            color: white; 
+                            padding: 5px 12px; 
+                            border-radius: 5px; 
+                            text-decoration: none; 
+                            font-weight: bold; 
+                            font-size: 11px;
+                            white-space: nowrap;
+                        ">
+                            Ver oferta
+                        </a>
                     </div>
                 """, unsafe_allow_html=True)
 
@@ -154,12 +168,12 @@ if selected_sku:
                     fig.add_trace(go.Scatter(
                         x=df['fecha'], y=df['precio'], 
                         name=tienda, mode='lines+markers',
-                        line=dict(color=mapa_colores[tienda], width=2) # FORZAMOS EL COLOR
+                        line=dict(color=mapa_colores[tienda], width=2)
                     ))
             
             fig.update_layout(
                 template="plotly_white", height=480, margin=dict(l=0, r=0, t=10, b=0),
-                showlegend=False, # PODEMOS QUITAR LA LEYENDA DE ABAJO YA QUE ESTÁ EN LAS CARDS
+                showlegend=False,
                 xaxis_title="Fecha", yaxis_title="Precio ($)", separators=",."
             )
             st.plotly_chart(fig, use_container_width=True)
