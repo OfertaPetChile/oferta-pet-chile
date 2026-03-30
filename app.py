@@ -96,94 +96,89 @@ if selected_sku:
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
     # --- 3. DISEÑO DE COLUMNAS ---
-    with col_precios:
-        st.markdown("#### 💰 Ofertas y Filtro")
-        
-        # Ordenamos por precio
-        df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
-        
-        # Diccionario para guardar el estado de los checkboxes
+    # --- 3. DISEÑO DE COLUMNAS ---
+        # Definimos las columnas primero
+        col_precios, col_grafica = st.columns([1.3, 2.7], gap="medium")
+    
+        # Diccionario para capturar qué tiendas selecciona el usuario
         seleccion_tiendas = {}
-
-        st.markdown("<p style='font-size: 12px; color: #7f8c8d;'>Selecciona para ver en gráfica:</p>", unsafe_allow_html=True)
-
-        for i, row in df_ord.iterrows():
-            tienda = row['Tienda']
-            precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
-            es_top = (i == df_ord.index[0])
+    
+        # --- COLUMNA IZQUIERDA: LISTA CON CHECKBOX DISCRETO ---
+        with col_precios:
+            st.markdown("#### 💰 Ofertas y Filtro")
+            st.markdown("<p style='font-size: 12px; color: #7f8c8d; margin-bottom: 10px;'>Selecciona para comparar en la gráfica:</p>", unsafe_allow_html=True)
             
-            # 1. El Checkbox: Lo ponemos justo antes de la card
-            # Usamos un identificador único con el SKU para evitar conflictos
-            # Por defecto, marcamos las primeras 5 más baratas
-            default_val = True if i < 5 else False
+            df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
             
-            # Creamos una fila con 2 columnas: una mini para el check y otra para la info
-            c1, c2 = st.columns([0.15, 0.85])
-            
-            with c1:
-                # El checkbox sin label (el label lo hacemos con HTML para control total)
-                seleccion_tiendas[tienda] = st.checkbox("", value=default_val, key=f"check_{tienda}_{selected_sku}")
-
-            with c2:
-                # 2. La Card de info (ahora más compacta y alineada al check)
-                st.markdown(f"""
-                    <div style="
-                        display: flex; 
-                        justify-content: space-between; 
-                        align-items: center; 
-                        background-color: {'#f0fff4' if es_top else 'white'}; 
-                        padding: 6px 10px; 
-                        border-radius: 6px; 
-                        border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
-                        margin-bottom: 5px;
-                        height: 38px;
-                    ">
-                        <div style="flex: 1; font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            {tienda}
+            for i, row in df_ord.iterrows():
+                tienda = row['Tienda']
+                precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
+                es_top = (i == 0) # El más barato de la lista ordenada
+                
+                # Layout interno: Checkbox pequeño + Card de info
+                c_check, c_card = st.columns([0.15, 0.85])
+                
+                with c_check:
+                    # Marcamos por defecto las primeras 4 para no saturar la gráfica al inicio
+                    default_val = True if i < 4 else False
+                    seleccion_tiendas[tienda] = st.checkbox("", value=default_val, key=f"ch_{tienda}_{selected_sku}")
+    
+                with c_card:
+                    # La card lineal y compacta
+                    st.markdown(f"""
+                        <div style="display: flex; justify-content: space-between; align-items: center; 
+                                    background-color: {'#f0fff4' if es_top else 'white'}; 
+                                    padding: 5px 10px; border-radius: 6px; 
+                                    border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
+                                    margin-bottom: 4px; height: 35px;">
+                            <div style="flex: 1; font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                {tienda}
+                            </div>
+                            <div style="font-size: 13px; font-weight: 800; color: #2c3e50; margin-right: 8px;">
+                                {precio_cl}
+                            </div>
+                            <a href="{row['URL']}" target="_blank" style="background-color: #1abc9c; color: white; padding: 2px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 10px;">🛒 Ver</a>
                         </div>
-                        <div style="font-size: 13px; font-weight: 800; color: #2c3e50; margin-right: 8px;">
-                            {precio_cl}
-                        </div>
-                        <a href="{row['URL']}" target="_blank" style="
-                            background-color: #1abc9c; 
-                            color: white; 
-                            padding: 3px 8px; 
-                            border-radius: 4px; 
-                            text-decoration: none; 
-                            font-weight: bold; 
-                            font-size: 10px;
-                        ">🛒 Ver</a>
-                    </div>
-                """, unsafe_allow_html=True)
-
-    # --- COLUMNA DERECHA: GRÁFICA (Filtrada por el diccionario de checkboxes) ---
-    with col_grafica:
-        st.markdown("#### 📈 Evolución Histórica")
-        
-        # Filtramos las tiendas que tienen el checkbox en True
-        tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
-        
-        if tiendas_activas:
-            fig = go.Figure()
-            for tienda in tiendas_activas:
-                if tienda in historiales_completos:
-                    df = historiales_completos[tienda]
-                    fig.add_trace(go.Scatter(x=df['fecha'], y=df['precio'], name=tienda, mode='lines+markers'))
+                    """, unsafe_allow_html=True)
+    
+        # --- COLUMNA DERECHA: GRÁFICA ---
+        with col_grafica:
+            st.markdown("#### 📈 Evolución Histórica")
             
-            fig.update_layout(
-                template="plotly_white",
-                height=450,
-                margin=dict(l=0, r=0, t=10, b=0),
-                showlegend=True,
-                legend=dict(orientation="h", yanchor="bottom", y=-0.5, xanchor="center", x=0.5),
-                xaxis_title="Fecha",
-                yaxis_title="Precio ($)",
-                separators=",."
-            )
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Selecciona tiendas a la izquierda para comparar.")
-
+            # Filtramos solo las tiendas marcadas en los checkboxes
+            tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
+            
+            if tiendas_activas:
+                fig = go.Figure()
+                for tienda in tiendas_activas:
+                    if tienda in historiales_completos:
+                        df = historiales_completos[tienda]
+                        fig.add_trace(go.Scatter(
+                            x=df['fecha'], 
+                            y=df['precio'], 
+                            name=tienda, 
+                            mode='lines+markers',
+                            line=dict(width=2)
+                        ))
+                
+                fig.update_layout(
+                    template="plotly_white",
+                    height=480,
+                    margin=dict(l=0, r=0, t=10, b=0),
+                    showlegend=True,
+                    legend=dict(
+                        orientation="h", 
+                        yanchor="bottom", y=-0.4, 
+                        xanchor="center", x=0.5
+                    ),
+                    xaxis_title="Fecha",
+                    yaxis_title="Precio ($)",
+                    separators=",."
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Selecciona tiendas a la izquierda para visualizar la comparativa.")
+                
 # --- VISTA 1: GALERÍA PRINCIPAL (Corregida con nuevos nombres de columna) ---
 else:
     st.title("🐾 Oferta Pet Chile")
