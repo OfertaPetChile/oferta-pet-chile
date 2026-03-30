@@ -128,7 +128,7 @@ if selected_sku:
                                 margin-bottom:6px; height:45px;">
                         <div style="display:flex; align-items:center; width:110px; flex-shrink:0;">
                             <div style="width:12px; height:12px; border-radius:50%; background-color:{color_tienda}; margin-right:8px;"></div>
-                            <div style="font-size:13px; font-weight:800; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{tienda}</div>
+                            <div style="font-size:13px; font-weight:850; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{tienda}</div>
                         </div>
                         <div style="flex-grow:1; text-align:right; margin-right:12px;">
                             <span style="font-size:14px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
