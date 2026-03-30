@@ -63,7 +63,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- VISTA 2: HOJA DE DETALLE (Diseño según tu boceto) ---
+# --- VISTA 2: HOJA DE DETALLE (Diseño con Checkbox Integrado) ---
 if selected_sku:
     if st.button("⬅️ Volver a la galería"):
         st.query_params.clear()
@@ -96,50 +96,74 @@ if selected_sku:
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
 
     # --- 3. DISEÑO DE COLUMNAS ---
-    # Columna Izquierda (Precios) | Columna Derecha (Gráfica)
-    col_precios, col_grafica = st.columns([1.2, 2.8], gap="large")
+    col_precios, col_grafica = st.columns([1.3, 2.7], gap="large")
+
+    # Diccionario para capturar la selección
+    seleccion_tiendas = {}
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
         
-        # Selector de Tiendas para la gráfica (Ubicado según tu diseño)
-        tiendas_todas = sorted(list(historiales_completos.keys()))
-        seleccionadas = st.multiselect("Ver en gráfica:", options=tiendas_todas, default=tiendas_todas[:5])
-        
-        st.markdown("---") # Separador visual pequeño
+        st.markdown("<p style='font-size: 11px; color: #7f8c8d; margin-bottom: 10px;'>Selecciona para comparar en la gráfica:</p>", unsafe_allow_html=True)
         
         for i, row in df_ord.iterrows():
+            tienda = row['Tienda']
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             es_top = (i == df_ord.index[0])
             
-            st.markdown(f"""
-                <div style="display: flex; justify-content: space-between; align-items: center; background-color: {'#f0fff4' if es_top else 'white'}; padding: 8px; border-radius: 6px; border: 1px solid {'#2ecc71' if es_top else '#eee'}; margin-bottom: 5px; gap: 5px;">
-                    <div style="flex: 1; font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{row['Tienda']}</div>
-                    <div style="font-size: 13px; font-weight: 800; color: #2c3e50; margin-right: 5px;">{precio_cl}</div>
-                    <a href="{row['URL']}" target="_blank" style="background-color: #1abc9c; color: white; padding: 4px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 10px;">🛒 Ver</a>
-                </div>
-            """, unsafe_allow_html=True)
+            # Layout: Checkbox + Card de información
+            c_check, c_card = st.columns([0.15, 0.85])
+            
+            with c_check:
+                # Marcamos por defecto las primeras 5 más baratas
+                def_val = True if i < 5 else False
+                seleccion_tiendas[tienda] = st.checkbox("", value=def_val, key=f"ch_{tienda}_{selected_sku}")
+
+            with c_card:
+                st.markdown(f"""
+                    <div style="display: flex; justify-content: space-between; align-items: center; 
+                                background-color: {'#f0fff4' if es_top else 'white'}; 
+                                padding: 6px 10px; border-radius: 6px; 
+                                border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
+                                margin-bottom: 5px; height: 38px;">
+                        <div style="flex: 1; font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            {tienda}
+                        </div>
+                        <div style="font-size: 13px; font-weight: 800; color: #2c3e50; margin-right: 5px;">
+                            {precio_cl}
+                        </div>
+                        <a href="{row['URL']}" target="_blank" style="background-color: #1abc9c; color: white; padding: 3px 8px; border-radius: 4px; text-decoration: none; font-weight: bold; font-size: 10px;">🛒 Ver</a>
+                    </div>
+                """, unsafe_allow_html=True)
 
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
-        if seleccionadas:
+        
+        # Filtramos las seleccionadas
+        tiendas_a_graficar = [t for t, activo in seleccion_tiendas.items() if activo]
+        
+        if tiendas_a_graficar:
             fig = go.Figure()
-            for tienda in seleccionadas:
+            for tienda in tiendas_a_graficar:
                 if tienda in historiales_completos:
                     df = historiales_completos[tienda]
-                    fig.add_trace(go.Scatter(x=df['fecha'], y=df['precio'], name=tienda, mode='lines+markers'))
+                    fig.add_trace(go.Scatter(
+                        x=df['fecha'], 
+                        y=df['precio'], 
+                        name=tienda, 
+                        mode='lines+markers'
+                    ))
             
             fig.update_layout(
                 template="plotly_white",
-                height=450,
+                height=480,
                 margin=dict(l=0, r=0, t=10, b=0),
-                # --- AQUÍ ESTÁ EL CAMBIO CLAVE: LEYENDA ABAJO ---
                 showlegend=True,
                 legend=dict(
-                    orientation="h",   # Orientación Horizontal
+                    orientation="h",
                     yanchor="bottom",
-                    y=-0.5,            # La empuja hacia abajo del eje X
+                    y=-0.5,
                     xanchor="center",
                     x=0.5
                 ),
@@ -147,7 +171,9 @@ if selected_sku:
                 yaxis_title="Precio ($)",
                 separators=",."
             )
-            st.plotly_chart(fig, use_container_width=True) 
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Selecciona al menos una tienda a la izquierda para ver la gráfica.")  
             
 # --- VISTA 1: GALERÍA PRINCIPAL (Corregida con nuevos nombres de columna) ---
 else:
