@@ -79,7 +79,7 @@ if selected_sku:
     st.title(f"📊 {nombre_oficial}")
     st.divider()
 
-    # 1. Carga de Datos (Incluimos disponibilidad)
+    # 1. Carga de Datos (Asegúrate de incluir disponibilidad)
     res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
     if not res_prod.data:
@@ -101,47 +101,53 @@ if selected_sku:
                 "Disponibilidad": p.get('disponibilidad', 'En Stock')
             })
             historiales_completos[tienda] = df_h.sort_values(by="fecha")
-            
-    # 2. Crear el DataFrame y la columna de prioridad (0: Stock, 1: Agotado)
+
+    # 2. ORDENAMIENTO CRÍTICO: Disponibilidad (0: En Stock, 1: Agotado) y luego Precio
     df_raw = pd.DataFrame(datos_tabla)
     df_raw['prioridad_stock'] = df_raw['Disponibilidad'].apply(lambda x: 0 if x == 'En Stock' else 1)
-    
-    # 3. ORDENAR: Primero disponibilidad, luego precio más bajo
     df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio']).reset_index(drop=True)
 
-    # 4. Inicializar contador para la gráfica (Máximo 5 líneas al nacer)
-    contador_grafica = 0
+    # Colores por Tienda
+    colores_disponibles = px.colors.qualitative.Plotly
+    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
+                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
+
+    # 3. DEFINICIÓN DE COLUMNAS (Aquí se definen antes de usarse)
+    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
+    
     seleccion_tiendas = {}
+    contador_grafica = 0
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_ord.iterrows():
             tienda = row['Tienda']
-            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
             color_tienda = mapa_colores[tienda]
+            esta_agotado = (row['Disponibilidad'] == 'Agotado')
             
-            # LÓGICA DE MARCADO: 
-            # Tratamos a todos por IGUAL. 
-            # Si hay stock y aún no llegamos a 5, se marca para la gráfica.
+            # Lógica de Marcado Automático (Trato igualitario para todos)
             check_inicial = False
             if not esta_agotado and contador_grafica < 5:
                 check_inicial = True
                 contador_grafica += 1
             
-            # El borde verde (Top 1) solo para el primero de la lista (que por orden será el más barato con stock)
+            # Estilos de la tarjeta
             es_top = (i == 0 and not esta_agotado)
+            opacidad_info = "0.5" if esta_agotado else "1.0"
+            bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+            border_card = '#2ecc71' if es_top else '#eee'
+            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+            btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
 
             c_check, c_card = st.columns([0.1, 0.9])
             with c_check:
-                # El checkbox sigue la lógica del contador de arriba
                 seleccion_tiendas[tienda] = st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                # 3. Construcción del HTML sin indentaciones internas que rompan Streamlit
                 badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
-                html_final = (
+                html_card = (
                     f'<div style="display:flex;justify-content:space-between;align-items:center;'
                     f'background-color:{bg_card};padding:6px 12px;border-radius:8px;'
                     f'border:1px solid {border_card};margin-bottom:6px;height:52px;width:100%;">'
@@ -157,12 +163,26 @@ if selected_sku:
                     f'</div>'
                     f'<a href="{row["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
                     f'padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
-                    f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
+                    f'white-space:nowrap;pointer-events:{"none" if esta_agotado else "auto"};opacity:{opacidad_info};">{btn_txt}</a>'
                     f'</div>'
                 )
-                
-                st.markdown(html_final, unsafe_allow_html=True)
-                
+                st.markdown(html_card, unsafe_allow_html=True)
+
+    with col_grafica:
+        st.markdown("#### 📈 Evolución Histórica")
+        tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
+        if tiendas_activas:
+            fig = go.Figure()
+            for tienda in tiendas_activas:
+                if tienda in historiales_completos:
+                    df = historiales_completos[tienda]
+                    fig.add_trace(go.Scatter(
+                        x=df['fecha'], y=df['precio'], 
+                        name=tienda, mode='lines+markers',
+                        line=dict(color=mapa_colores[tienda], width=2.5)
+                    ))
+            fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)                
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
