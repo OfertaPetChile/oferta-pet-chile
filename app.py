@@ -140,42 +140,47 @@ if selected_sku:
                 seleccion_tiendas[tienda] = st.checkbox("", value=True, key=f"ch_{tienda}_{selected_sku}")
 
             with c_card:
-                # Estilos del botón
-                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                btn_text = "Sin Stock" if esta_agotado else "Ir al sitio"
-                pointer_event = "none" if esta_agotado else "auto"
+            # Lógica de estados previa al HTML
+            badge_html = f'<span style="background-color:#e74c3c; color:white; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold; margin-top:3px; width:fit-content;">AGOTADO</span>' if esta_agotado else ''
+            
+            # Opacidad individual para elementos atenuados
+            opacidad_texto = "0.6" if esta_agotado else "1.0"
+            pointer_event = "none" if esta_agotado else "auto"
+            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+            btn_text = "Sin Stock" if esta_agotado else "Ir al sitio"
 
-                st.markdown(f'''
-                    <div style="display:flex; justify-content:space-between; align-items:center; 
-                                background-color: {bg_color}; 
-                                padding:8px 12px; border-radius:10px; 
-                                border:1px solid {border_color}; 
-                                margin-bottom:6px; height:52px;">
+            # Renderizado final
+            st.markdown(f'''
+                <div style="display:flex; justify-content:space-between; align-items:center; 
+                            background-color: {bg_color}; 
+                            padding:8px 12px; border-radius:10px; 
+                            border:1px solid {border_color}; 
+                            margin-bottom:6px; height:55px;">
+                    
+                    <div style="display:flex; align-items:center; flex-shrink:0;">
+                        <div style="width:14px; height:14px; border-radius:50%; 
+                                    background-color:{color_tienda}; margin-right:10px; 
+                                    box-shadow: 0 0 2px rgba(0,0,0,0.2); flex-shrink:0;"></div>
                         
-                        <div style="display:flex; align-items:center; flex-shrink:0;">
-                            <div style="width:14px; height:14px; border-radius:50%; 
-                                        background-color:{color_tienda}; margin-right:10px; 
-                                        box-shadow: 0 0 2px rgba(0,0,0,0.2);"></div>
-                            
-                            <div style="display:flex; flex-direction:column; opacity: {0.6 if esta_agotado else 1.0};">
-                                <div style="font-size:13px; font-weight:800; color:{text_color}; line-height:1.1;">{tienda}</div>
-                                {f'<span style="background-color:#e74c3c; color:white; padding:1px 5px; border-radius:4px; font-size:9px; font-weight:bold; margin-top:3px; width:fit-content;">AGOTADO</span>' if esta_agotado else ''}
-                            </div>
+                        <div style="display:flex; flex-direction:column; opacity: {opacidad_texto};">
+                            <div style="font-size:13px; font-weight:800; color:{text_color}; line-height:1.1;">{tienda}</div>
+                            {badge_html}
                         </div>
-
-                        <div style="flex-grow:1; text-align:right; margin-right:12px; opacity: {0.6 if esta_agotado else 1.0};">
-                            <span style="font-size:14px; font-weight:800; color:{text_color}; font-family: monospace;">{precio_cl}</span>
-                        </div>
-
-                        <a href="{row['URL']}" target="_blank" 
-                           style="background-color:{btn_bg}; color:white; padding:6px 12px; border-radius:6px; 
-                                  text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;
-                                  pointer-events: {pointer_event}; opacity: {0.7 if esta_agotado else 1.0};">
-                           {btn_text}
-                        </a>
                     </div>
-                ''', unsafe_allow_html=True)
-                
+
+                    <div style="flex-grow:1; text-align:right; margin-right:12px; opacity: {opacidad_texto};">
+                        <span style="font-size:14px; font-weight:800; color:{text_color}; font-family: monospace;">{precio_cl}</span>
+                    </div>
+
+                    <a href="{row['URL']}" target="_blank" 
+                       style="background-color:{btn_bg}; color:white; padding:6px 12px; border-radius:6px; 
+                              text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;
+                              pointer-events: {pointer_event}; opacity: {opacidad_texto};">
+                       {btn_text}
+                    </a>
+                </div>
+            ''', unsafe_allow_html=True)
+            
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
