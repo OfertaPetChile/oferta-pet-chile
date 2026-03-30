@@ -133,7 +133,7 @@ if selected_sku:
                         <div style="flex-grow:1; text-align:right; margin-right:12px;">
                             <span style="font-size:14px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
                         </div>
-                        <a href="{row['URL']}" target="_blank" style="background-color:#1abc9c; color:white; padding:5px 15px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">Ver oferta</a>
+                        <a href="{row['URL']}" target="_blank" style="background-color:#1abc9c; color:white; padding:5px 15px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; white-space:nowrap;">Ir al sitio</a>
                     </div>
                 ''', unsafe_allow_html=True)
 
