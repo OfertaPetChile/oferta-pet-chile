@@ -220,7 +220,7 @@ if selected_sku:
                     fig.add_trace(go.Scatter(
                         x=df['fecha'], y=df['precio'], 
                         name=tienda, mode='lines+markers',
-                        line=dict(color=mapa_colores[tienda], width=2.5)
+                        line=dict(color=mapa_colores[tienda], width=1)
                     ))
             fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
