@@ -67,8 +67,8 @@ st.markdown("""
 # --- VISTA 2: HOJA DE DETALLE (Con Indicador de Color en Tarjeta) ---
 if selected_sku:
     if st.button("⬅️ Volver a la galería"):
-        st.query_params.clear()
-        st.rerun()
+       st.query_params.clear()
+       st.rerun()
 
     res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
     nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
