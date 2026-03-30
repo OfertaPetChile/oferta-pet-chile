@@ -107,23 +107,23 @@ if selected_sku:
     
     # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
     colores_fijos = {
-        "Punto Mascotas": "#000000",   # Negro sólido
-        "LH Petshop": "#375A64",       # Gris Azulado oscuro
-        "Distribuidora Lira": "#C10000", # Rojo Sangre (Muy distinto al fucsia)
-        "Pet Kingdom": "#6D1A36",      # Bordó / Vino
-        "Laika": "#6F2BFF",            # Violeta Eléctrico
-        "PetBJ": "#0026FF",            # Azul Real
-        "Amigales": "#00B7EF",         # Cian Cielo
-        "Superzoo": "#E6007E",         # Fucsia / Magenta
-        "JardinZoo": "#27A44B",        # Verde Grama
-        "Tus Mascotas": "#F7941D",     # Naranja
-        "Laika Member": "#A181FF",     # Lavanda (Hijo de Laika, pero más claro)
-        "Petvet Member": "#D9C08B",    # Arena / Dorado mate
-        "BestForPets": "#C4FF1A",      # Verde Lima (Casi neón)
-        "Braloy": "#96FFFF",           # Aqua muy claro
-        "Razaspet": "#FFC000",         # Amarillo Huevo
-        "Petvet": "#8B5E3C",           # Café / Bronce
-        "CPyG": "#FF80B5",             # Rosado Pastel
+        "Punto Mascotas": "#a6a6a6",   
+        "LH Petshop": "#326475",       
+        "Distribuidora Lira": "#cd0201", 
+        "Pet Kingdom": "#6b1e46",      
+        "Laika": "#5e17eb",            
+        "PetBJ": "#0c15f5",            
+        "Amigales": "#00b0f0",         
+        "Superzoo": "#d504b9",         
+        "JardinZoo": "#31ab5c",        
+        "Tus Mascotas": "#c1ff72",     
+        "Laika Member": "#9662fe",     
+        "Petvet Repet": "#e2c78a",    
+        "BestForPets": "#C4FF1A",      
+        "Braloy": "#8aeef2",           
+        "Razaspet": "#ffcc11",        
+        "Petvet": "#907740",           
+        "CPyG": "#fb8bd0",            
     }
 
     # 2. ASIGNACIÓN ROBUSTA
