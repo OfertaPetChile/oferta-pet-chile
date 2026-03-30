@@ -64,119 +64,123 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- VISTA 2: HOJA DE DETALLE (Ajuste de espacios y botón de oferta) ---
+Sigue mostrando el código 
+
+El código que funcionaba bien, pero dejaba mucho espacio entre nombre y precio era 
+
+# --- VISTA 2: HOJA DE DETALLE (Con Indicador de Color en Tarjeta) ---
 if selected_sku:
-    if st.button("⬅️ Volver a la galería"):
-        st.query_params.clear()
-        st.rerun()
+    if st.button("⬅️ Volver a la galería"):
+        st.query_params.clear()
+        st.rerun()
 
-    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
-    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
+    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
+    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
 
-    st.title(f"📊 {nombre_oficial}")
-    st.divider()
+    st.title(f"📊 {nombre_oficial}")
+    st.divider()
 
-    # 1. Carga y Preparación de Datos
-    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
+    # 1. Carga y Preparación de Datos
+    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda").eq("mi_sku", selected_sku).execute()
+    
+    if not res_prod.data:
+        st.warning("Sin ofertas disponibles.")
+        st.stop()
+
+    datos_tabla = []
+    historiales_completos = {}
+    
+    for p in res_prod.data:
+        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
+        df_h = pd.DataFrame(res_hist.data)
+        if not df_h.empty:
+            tienda = p['nombre_tienda']
+            datos_tabla.append({"Tienda": tienda, "Precio": df_h.iloc[0]['precio'], "URL": p['url_tienda']})
+            historiales_completos[tienda] = df_h.sort_values(by="fecha")
+
+    # 2. Asignación de Colores Fijos por Tienda
+    # Usamos la paleta cualitativa de Plotly para que coincidan con el gráfico
+    colores_disponibles = px.colors.qualitative.Plotly # Azul, Rojo, Verde, Morado, Naranja, etc.
+    df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
+    
+    # Creamos un diccionario: Tienda -> Color
+    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
+                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
+
+# --- 3. DISEÑO DE COLUMNAS ---
+        col_precios, col_grafica = st.columns([1.3, 2.7], gap="large")
+        seleccion_tiendas = {}
     
-    if not res_prod.data:
-        st.warning("Sin ofertas disponibles.")
-        st.stop()
-
-    datos_tabla = []
-    historiales_completos = {}
-    
-    for p in res_prod.data:
-        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
-        df_h = pd.DataFrame(res_hist.data)
-        if not df_h.empty:
-            tienda = p['nombre_tienda']
-            datos_tabla.append({"Tienda": tienda, "Precio": df_h.iloc[0]['precio'], "URL": p['url_tienda']})
-            historiales_completos[tienda] = df_h.sort_values(by="fecha")
-
-    # 2. Asignación de Colores Fijos por Tienda
-    colores_disponibles = px.colors.qualitative.Plotly
-    df_ord = pd.DataFrame(datos_tabla).sort_values(by="Precio")
-    
-    mapa_colores = {tienda: colores_disponibles[i % len(colores_disponibles)] 
-                    for i, tienda in enumerate(df_ord['Tienda'].unique())}
-
-    # --- 3. DISEÑO DE COLUMNAS ---
-    # Ajustamos a 1.4 para dar un poco más de ancho a la zona de precios
-    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
-    seleccion_tiendas = {}
-
-    with col_precios:
-        st.markdown("#### 💰 Ofertas Actuales")
-        
-        for i, row in df_ord.iterrows():
-            tienda = row['Tienda']
-            precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
-            color_tienda = mapa_colores[tienda]
-            es_top = (i == 0)
+        with col_precios:
+            st.markdown("#### 💰 Ofertas y Colores")
             
-            # Ajustamos la proporción Checkbox | Card para ganar espacio
-            c_check, c_card = st.columns([0.1, 0.9])
-            
-            with c_check:
-                seleccion_tiendas[tienda] = st.checkbox("", value=(i < 5), key=f"ch_{tienda}_{selected_sku}")
-
-            with c_card:
-                # DISEÑO OPTIMIZADO: Nombre con ancho fijo + Precio pegado al botón
-                st.markdown(f"""
-                    <div style="display: flex; justify-content: space-between; align-items: center; 
-                                background-color: {'#f0fff4' if es_top else 'white'}; 
-                                padding: 6px 12px; border-radius: 8px; 
-                                border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
-                                margin-bottom: 6px; height: 45px;">
-                        
-                        <div style="display: flex; align-items: center; width: 100px; flex-shrink: 0;">
-                            <div style="width: 12px; height: 12px; border-radius: 50%; background-color: {color_tienda}; margin-right: 8px; flex-shrink: 0;"></div>
-                            <div style="font-size: 11px; font-weight: bold; color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                {tienda}
+            for i, row in df_ord.iterrows():
+                tienda = row['Tienda']
+                precio_cl = f"$ {row['Precio']:,.0f}".replace(",", ".")
+                color_tienda = mapa_colores[tienda]
+                es_top = (i == 0)
+                
+                c_check, c_card = st.columns([0.15, 0.85])
+                
+                with c_check:
+                    seleccion_tiendas[tienda] = st.checkbox("", value=(i < 5), key=f"ch_{tienda}_{selected_sku}")
+    
+                with c_card:
+                    # Ajuste: El nombre tiene ancho fijo y el botón es más grande
+                    st.markdown(f'''
+                        <div style="display: flex; justify-content: space-between; align-items: center; 
+                                    background-color: {'#f0fff4' if es_top else 'white'}; 
+                                    padding: 6px 10px; border-radius: 6px; 
+                                    border: 1px solid {'#2ecc71' if es_top else '#eee'}; 
+                                    margin-bottom: 5px; height: 42px;">
+                            
+                            <div style="display: flex; align-items: center; width: 100px; flex-shrink: 0;">
+                                <div style="width: 10px; height: 10px; border-radius: 50%; background-color: {color_tienda}; margin-right: 8px; flex-shrink: 0;"></div>
+                                <div style="font-size: 11px; font-weight: bold; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                    {tienda}
+                                </div>
                             </div>
+                            
+                            <div style="flex-grow: 1; text-align: right; margin-right: 10px;">
+                                <span style="font-size: 14px; font-weight: 800; color: #2c3e50;">{precio_cl}</span>
+                            </div>
+                            
+                            <a href="{row['URL']}" target="_blank" style="
+                                background-color: #1abc9c; 
+                                color: white; 
+                                padding: 5px 10px; 
+                                border-radius: 5px; 
+                                text-decoration: none; 
+                                font-weight: bold; 
+                                font-size: 11px;
+                                white-space: nowrap;
+                            ">
+                                Ver
+                            </a>
                         </div>
-                        
-                        <div style="flex-grow: 1; text-align: right; margin-right: 12px;">
-                            <span style="font-size: 14px; font-weight: 800; color: #2c3e50;">{precio_cl}</span>
-                        </div>
-                        
-                        <a href="{row['URL']}" target="_blank" style="
-                            background-color: #1abc9c; 
-                            color: white; 
-                            padding: 5px 12px; 
-                            border-radius: 6px; 
-                            text-decoration: none; 
-                            font-weight: bold; 
-                            font-size: 11px;
-                            white-space: nowrap;
-                        ">
-                            Ver oferta
-                        </a>
-                    </div>
-                """, unsafe_allow_html=True)
-
-    with col_grafica:
-        st.markdown("#### 📈 Evolución Histórica")
-        tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
-        
-        if tiendas_activas:
-            fig = go.Figure()
-            for tienda in tiendas_activas:
-                if tienda in historiales_completos:
-                    df = historiales_completos[tienda]
-                    fig.add_trace(go.Scatter(
-                        x=df['fecha'], y=df['precio'], 
-                        name=tienda, mode='lines+markers',
-                        line=dict(color=mapa_colores[tienda], width=2)
-                    ))
+                    ''', unsafe_allow_html=True)
+    
+        with col_grafica:
+            st.markdown("#### 📈 Evolución Histórica")
+            tiendas_activas = [t for t, activo in seleccion_tiendas.items() if activo]
             
-            fig.update_layout(
-                template="plotly_white", height=480, margin=dict(l=0, r=0, t=10, b=0),
-                showlegend=False,
-                xaxis_title="Fecha", yaxis_title="Precio ($)", separators=",."
-            )
-            st.plotly_chart(fig, use_container_width=True) 
+            if tiendas_activas:
+                fig = go.Figure()
+                for tienda in tiendas_activas:
+                    if tienda in historiales_completos:
+                        df = historiales_completos[tienda]
+                        fig.add_trace(go.Scatter(
+                            x=df['fecha'], y=df['precio'], 
+                            name=tienda, mode='lines+markers',
+                            line=dict(color=mapa_colores[tienda], width=2)
+                        ))
+                
+                fig.update_layout(
+                    template="plotly_white", height=480, margin=dict(l=0, r=0, t=10, b=0),
+                    showlegend=False,
+                    xaxis_title="Fecha", yaxis_title="Precio ($)", separators=",."
+                )
+                st.plotly_chart(fig, use_container_width=True)
             
 # --- VISTA 1: GALERÍA PRINCIPAL (Corregida con nuevos nombres de columna) ---
 else:
