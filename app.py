@@ -107,26 +107,23 @@ if selected_sku:
     
     # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
     colores_fijos = {
-        # AZULES Y CIANES (Separados por saturación)
-        "Laika": "#00ADEE",            # Cian brillante
-        "Laika Member": "#0054A6",     # Azul marino (Contrasta con el cian)
-        "Amigales": "#22B14C",         # Verde esmeralda (Cian-verdoso)
-        "Braloy": "#00B7C2",           # Turquesa
-        "Distribuidora Lira": "#1E2A39", # Azul Petróleo Muy Oscuro
-
-        # ROJOS, NARANJAS Y AMARILLOS
-        "Superzoo": "#ED1C24",         # Rojo puro
-        "Punto Mascotas": "#000000",   # Negro (Para que destaque sobre cualquier color)
+        "Punto Mascotas": "#000000",   # Negro sólido
+        "LH Petshop": "#375A64",       # Gris Azulado oscuro
+        "Distribuidora Lira": "#C10000", # Rojo Sangre (Muy distinto al fucsia)
+        "Pet Kingdom": "#6D1A36",      # Bordó / Vino
+        "Laika": "#6F2BFF",            # Violeta Eléctrico
+        "PetBJ": "#0026FF",            # Azul Real
+        "Amigales": "#00B7EF",         # Cian Cielo
+        "Superzoo": "#E6007E",         # Fucsia / Magenta
+        "JardinZoo": "#27A44B",        # Verde Grama
         "Tus Mascotas": "#F7941D",     # Naranja
-        "Razaspet": "#FFF200",         # Amarillo (Cuidado: en gráfico usar un poco más oscuro #FFD700)
-        "Pet Kingdom": "#BE1E2D",      # Guinda / Rojo oscuro
-
-        # VERDES Y OTROS
-        "BestForPets": "#8CC63F",      # Verde lima
-        "JardinZoo": "#006837",        # Verde bosque
-        "Petvet": "#603813",           # Café (Color caca/tierra muy distinto al resto)
-        "CPyG": "#662D91",             # Morado
-        "PetBJ": "#92278F",            # Fucsia / Violeta
+        "Laika Member": "#A181FF",     # Lavanda (Hijo de Laika, pero más claro)
+        "Petvet Member": "#D9C08B",    # Arena / Dorado mate
+        "BestForPets": "#C4FF1A",      # Verde Lima (Casi neón)
+        "Braloy": "#96FFFF",           # Aqua muy claro
+        "Razaspet": "#FFC000",         # Amarillo Huevo
+        "Petvet": "#8B5E3C",           # Café / Bronce
+        "CPyG": "#FF80B5",             # Rosado Pastel
     }
 
     # 2. ASIGNACIÓN ROBUSTA
