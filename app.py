@@ -223,15 +223,22 @@ if selected_sku:
 
                 # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
                 if tiene_opciones:
-                    # Usamos un div con position relative y top negativo
-                    # Esto lo "desplaza" hacia arriba sin mover el resto de las tarjetas
-                    m_top_move = "-28px" 
-                    
+                    # Este bloque de CSS ataca el contenedor del widget y lo desplaza
+                    # SIN ocupar espacio extra abajo (evita que la siguiente card se aleje)
                     st.markdown(
-                        f'<div style="position:relative; top:{m_top_move}; z-index:3; padding:0 10px;">', 
+                        f"""
+                        <style>
+                        div[data-testid="stSelectbox"]:has(div[key="{op_id}"]) {{
+                            position: relative !important;
+                            top: -22px !important;  /* Ajusta este valor para subirlo más o menos */
+                            margin-bottom: -22px !important; /* Compensa el hueco que dejaría abajo */
+                        }}
+                        </style>
+                        """, 
                         unsafe_allow_html=True
                     )
-                    
+
+                    # El selectbox ahora se renderiza normalmente, el CSS de arriba se encarga de moverlo
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", 
@@ -240,12 +247,6 @@ if selected_sku:
                         key=op_id, 
                         label_visibility="collapsed"
                     )
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    
-                    # Compensamos el espacio que dejó el movimiento para que la siguiente tarjeta 
-                    # no se pegue. Ajusta este height si ves que la tarjeta de abajo sube mucho.
-                    st.markdown('<div style="height:0px; margin-top:-20px;"></div>', unsafe_allow_html=True)
                 else:
                     opcion_elegida = opciones[0]
                    
