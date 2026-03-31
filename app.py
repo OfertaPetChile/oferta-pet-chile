@@ -163,20 +163,20 @@ if selected_sku:
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         
-        # IMPORTANTE: Iteramos sobre df_resumen (el dataframe AGRUPADO)
+        # Iteramos sobre el resumen agrupado (Asegúrate de que df_resumen esté definido arriba)
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
             
-            # Columnas: Checkbox | Bloque de Tienda
+            # 1. Columnas: Checkbox | Bloque de Contenido
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Selector de Variedad (Solo si hay más de una)
+                # --- PASO 1: Determinar la opción elegida ---
                 if len(opciones) > 1:
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", 
+                        f"Opciones para {tienda}", 
                         opciones, 
                         format_func=fmt, 
                         key=f"sel_{tienda}_{selected_sku}",
@@ -185,47 +185,50 @@ if selected_sku:
                 else:
                     opcion_elegida = opciones[0]
 
-                # 2. Variables de la opción elegida
+                # --- PASO 2: Definir TODAS las variables de estilo (Blindaje) ---
                 precio_val = opcion_elegida['Precio']
                 url_tienda = opcion_elegida['URL']
-                esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
+                dispo_raw = str(opcion_elegida['Disponibilidad']).strip().capitalize()
+                esta_agotado = "Agotado" in dispo_raw
                 
-                # Formateo de estilo
+                # Formateo y Colores
                 precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
-                color_tienda = mapa_colores.get(tienda, "#eee")
+                color_punto = mapa_colores.get(tienda, "#eee")
                 es_top = (i == 0 and not esta_agotado)
                 
-                # Clases visuales
-                bg_color = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
-                border_color = '#2ecc71' if es_top else '#eee'
+                # Variables que causaban el error NameError
+                opacidad_info = "0.5" if esta_agotado else "1.0"
+                bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+                border_card = '#2ecc71' if es_top else '#eee'
                 btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                opacidad = "0.5" if esta_agotado else "1.0"
+                btn_txt = "Agotado" if esta_agotado else "Ir al sitio"
                 p_events = "none" if esta_agotado else "auto"
 
-                # 3. HTML Limpio (Sin saltos de línea extraños que rompan Streamlit)
-                badge_html = '<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;">AGOTADO</span>' if esta_agotado else ''
+                # --- PASO 3: Renderizado HTML Limpio ---
+                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
-                card_html = f"""
-                <div style="background:{bg_color}; border:1px solid {border_color}; border-radius:8px; padding:10px; margin-top:-5px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; height:55px;">
-                    <div style="display:flex; align-items:center;">
-                        <div style="width:12px; height:12px; background:{color_tienda}; border-radius:50%; margin-right:10px;"></div>
-                        <div style="opacity:{opacidad};">
-                            <div style="font-size:13px; font-weight:bold; color:#333;">{tienda}</div>
-                            {badge_html}
+                # Usamos una sola cadena f-string sin saltos de línea complejos para evitar que Streamlit lo rompa
+                html_card = f"""
+                <div style="display:flex; justify-content:space-between; align-items:center; background:{bg_card}; padding:8px 12px; border-radius:8px; border:1px solid {border_card}; margin-top:-5px; margin-bottom:12px; height:56px; width:100%;">
+                    <div style="display:flex; align-items:center; width:150px;">
+                        <div style="width:12px; height:12px; border-radius:50%; background:{color_punto}; margin-right:10px;"></div>
+                        <div style="opacity:{opacidad_info};">
+                            <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
+                            {badge}
                         </div>
                     </div>
-                    <div style="text-align:right; flex-grow:1; margin-right:15px; opacity:{opacidad}; font-size:15px; font-weight:800; color:#2c3e50;">
-                        {precio_cl}
+                    <div style="flex-grow:1; text-align:right; margin-right:15px; opacity:{opacidad_info};">
+                        <span style="font-size:15px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
                     </div>
-                    <a href="{url_tienda}" target="_blank" style="background:{btn_bg}; color:white; padding:6px 12px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; pointer-events:{p_events};">
-                        {"Ir al sitio" if not esta_agotado else "Agotado"}
+                    <a href="{url_tienda}" target="_blank" style="background:{btn_bg}; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; pointer-events:{p_events};">
+                        {btn_txt}
                     </a>
                 </div>
                 """
-                st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown(html_card, unsafe_allow_html=True)
 
             with c_check:
-                # Lógica del checkbox sincronizada
+                # El checkbox se sincroniza con la opción elegida arriba
                 check_inicial = False
                 if not esta_agotado and contador_grafica < 5:
                     check_inicial = True
@@ -233,7 +236,7 @@ if selected_sku:
                 
                 seleccion_tiendas[tienda] = {
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
-                    "id_producto": opcion_elegida['id_producto']
+                    "id_producto": opcion_elegica['id_producto'] # <--- Importante para la gráfica
                 }
 
             with c_card:
