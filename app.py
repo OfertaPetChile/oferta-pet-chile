@@ -177,7 +177,7 @@ if selected_sku:
                 /* El widget: Ajustamos el margin-top para BAJARLO */
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: -10px !important; 
+                    margin-top: -5px !important; 
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
