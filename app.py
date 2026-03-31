@@ -207,14 +207,14 @@ if selected_sku:
                 /* --- ESTILO DE LA LISTA DESPLEGABLE (OPCIONES) --- */
                 /* Ajustamos el tamaño de cada ítem de la lista */
                 [data-testid="stVirtualBlock"] div[role="option"] {
-                    font-size: 12px !important;
+                    font-size: 10px !important;
                     padding-top: 4px !important;
                     padding-bottom: 4px !important;
-                    min-height: 25px !important;
+                    min-height: 20px !important;
                 }
                 /* Asegura que el contenedor de la lista no tenga márgenes excesivos */
                 ul[role="listbox"] li {
-                    font-size: 12px !important;
+                    font-size: 10px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
