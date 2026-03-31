@@ -223,22 +223,27 @@ if selected_sku:
 
                 # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
                 if tiene_opciones:
-                    # Este bloque de CSS ataca el contenedor del widget y lo desplaza
-                    # SIN ocupar espacio extra abajo (evita que la siguiente card se aleje)
+                    # Usamos un contenedor de Streamlit para aislar el widget
+                    # e inyectamos CSS que fuerce al contenedor del selectbox a subir
                     st.markdown(
                         f"""
                         <style>
-                        div[data-testid="stSelectbox"]:has(div[key="{op_id}"]) {{
-                            position: relative !important;
-                            top: -22px !important;  /* Ajusta este valor para subirlo más o menos */
-                            margin-bottom: -22px !important; /* Compensa el hueco que dejaría abajo */
+                        /* Buscamos el div que contiene específicamente este selectbox por su key */
+                        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"] div[data-testid="stMarkdownContainer"] p:contains("{tienda}")) {{
+                            margin-top: -35px !important;
+                        }}
+                        /* Opción más directa: target al div que sigue al markdown de la info */
+                        div[key="{op_id}"] {{
+                            margin-top: -32px !important;
+                            position: relative;
+                            z-index: 5;
                         }}
                         </style>
                         """, 
                         unsafe_allow_html=True
                     )
 
-                    # El selectbox ahora se renderiza normalmente, el CSS de arriba se encarga de moverlo
+                    # Importante: El selectbox DEBE ir inmediatamente después del HTML de la info
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", 
