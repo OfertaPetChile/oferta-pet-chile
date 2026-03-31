@@ -162,9 +162,6 @@ if selected_sku:
 
     with col_precios:
     st.markdown("#### 💰 Ofertas Actuales")
-
-    # 1. ESTO REEMPLAZA todos los estilos previos y divs de margen negativo
-    st.markdown("""
         <style>
             [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                 margin-top: -28px !important; 
