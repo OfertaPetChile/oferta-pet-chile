@@ -223,15 +223,22 @@ if selected_sku:
 
                 # 4. DESPLEGABLE (Ubicado en la franja inferior de 52px)
                 if tiene_opciones:
-                    # m_top_select negativo para "succionar" el widget hacia el centro de la mitad inferior
-                    m_top_select = "-12px"
-                    st.markdown(f'<div style="margin-top:{m_top_select};"></div>', unsafe_allow_html=True)
+                    # Ajuste: Usamos un div con margin-top negativo que ENCIERRE al widget
+                    # -20px suele ser el punto dulce para centrarlo en la mitad inferior
+                    m_top_select = "-22px" 
+                    
+                    st.markdown(f'<div style="margin-top:{m_top_select};">', unsafe_allow_html=True)
                     
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", opciones, format_func=fmt, 
-                        key=op_id, label_visibility="collapsed"
+                        f"Variedad en {tienda}", 
+                        opciones, 
+                        format_func=fmt, 
+                        key=op_id, 
+                        label_visibility="collapsed"
                     )
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
                 else:
                     opcion_elegida = opciones[0]
 
