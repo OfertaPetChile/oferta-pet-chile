@@ -79,7 +79,7 @@ if selected_sku:
     st.title(f"📊 {nombre_oficial}")
     st.divider()
 
-    # 1. Carga de Datos (Asegúrate de incluir disponibilidad)
+    # 1. Carga de Datos
     res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
     if not res_prod.data:
@@ -87,67 +87,135 @@ if selected_sku:
         st.stop()
 
     datos_tabla = []
-    historiales_completos = {}
+    # ### NUEVO ###: El historial ahora se guarda por id_producto, no solo por tienda
+    historiales_por_id = {}
     
     for p in res_prod.data:
         res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
         df_h = pd.DataFrame(res_hist.data)
         if not df_h.empty:
             tienda = p['nombre_tienda']
+            id_p = p['id_producto']
             datos_tabla.append({
+                "id_producto": id_p,
                 "Tienda": tienda, 
                 "Precio": df_h.iloc[0]['precio'], 
                 "URL": p['url_tienda'],
                 "Disponibilidad": p.get('disponibilidad')
             })
-            historiales_completos[tienda] = df_h.sort_values(by="fecha")
+            historiales_por_id[id_p] = df_h.sort_values(by="fecha")
 
-    # 2. Crear DataFrame base
-    df_raw = pd.DataFrame(datos_tabla)
+    # ### NUEVO ### 2. AGRUPAR POR TIENDA
+    tiendas_agrupadas = {}
+    for item in datos_tabla:
+        t = item['Tienda']
+        if t not in tiendas_agrupadas:
+            tiendas_agrupadas[t] = []
+        tiendas_agrupadas[t].append(item)
+
+    resumen_tiendas = []
+    for tienda, opciones in tiendas_agrupadas.items():
+        # Ordenamos opciones por precio (la más barata primero por defecto)
+        opciones_ord = sorted(opciones, key=lambda x: x['Precio'])
+        principal = opciones_ord[0]
+        resumen_tiendas.append({
+            "Tienda": tienda,
+            "Precio_Min": principal['Precio'],
+            "Disponibilidad": principal['Disponibilidad'],
+            "Opciones": opciones_ord
+        })
+
+    df_resumen = pd.DataFrame(resumen_tiendas)
     
-    # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
+    # 3. COLORES (Se mantiene tu lógica de colores fijos)
     colores_fijos = {
-        "Punto Mascotas": "#a6a6a6",   
-        "LH Petshop": "#326475",       
-        "Distribuidora Lira": "#cd0201", 
-        "Pet Kingdom": "#6b1e46",      
-        "Laika": "#5e17eb",            
-        "PetBJ": "#0c15f5",            
-        "Amigales": "#00b0f0",         
-        "Superzoo": "#d504b9",         
-        "JardinZoo": "#31ab5c",        
-        "Tus Mascotas": "#c1ff72",     
-        "Laika Member": "#9662fe",     
-        "Petvet Repet": "#e2c78a",    
-        "BestForPets": "#C4FF1A",      
-        "Braloy": "#8aeef2",           
-        "Razaspet": "#ffcc11",        
-        "Petvet": "#907740",           
-        "CPyG": "#fb8bd0",            
+        "Punto Mascotas": "#a6a6a6", "LH Petshop": "#326475", "Distribuidora Lira": "#cd0201",
+        "Pet Kingdom": "#6b1e46", "Laika": "#5e17eb", "PetBJ": "#0c15f5",
+        "Amigales": "#00b0f0", "Superzoo": "#d504b9", "JardinZoo": "#31ab5c",
+        "Tus Mascotas": "#c1ff72", "Laika Member": "#9662fe", "Petvet Repet": "#e2c78a",
+        "BestForPets": "#C4FF1A", "Braloy": "#8aeef2", "Razaspet": "#ffcc11",
+        "Petvet": "#907740", "CPyG": "#fb8bd0"
     }
-
-    # 2. ASIGNACIÓN ROBUSTA
-    tiendas_unicas = df_raw['Tienda'].unique()
-    import plotly.colors as pc
-    # Paleta de respaldo por si aparece una tienda nueva que no está en el diccionario
-    respaldo = pc.qualitative.Alphabet 
-
-    mapa_colores = {}
-    for i, tienda in enumerate(tiendas_unicas):
-        if tienda in colores_fijos:
-            mapa_colores[tienda] = colores_fijos[tienda]
-        else:
-            mapa_colores[tienda] = respaldo[i % len(respaldo)]
     
-    # 4. LÓGICA DE PRIORIDAD Y ORDENAMIENTO
-    df_raw['Disponibilidad_limpia'] = df_raw['Disponibilidad'].astype(str).str.strip().str.capitalize()
-    def definir_prioridad(x):
-        if "Disponible" in x:
-            return 0
-        return 1
+    mapa_colores = {t: colores_fijos.get(t, pc.qualitative.Alphabet[i % 26]) 
+                    for i, t in enumerate(df_resumen['Tienda'].unique())}
+    
+    # 4. ORDENAMIENTO POR STOCK Y PRECIO MÍNIMO
+    df_resumen['Dispo_limpia'] = df_resumen['Disponibilidad'].astype(str).str.strip().str.capitalize()
+    df_resumen['prioridad_stock'] = df_resumen['Dispo_limpia'].apply(lambda x: 0 if "Disponible" in x or "Stock" in x else 1)
+    df_resumen = df_resumen.sort_values(by=['prioridad_stock', 'Precio_Min'], ascending=[True, True]).reset_index(drop=True)
 
-    df_raw['prioridad_stock'] = df_raw['Disponibilidad_limpia'].apply(definir_prioridad)
-    df_ord = df_raw.sort_values(by=['prioridad_stock', 'Precio'], ascending=[True, True]).reset_index(drop=True)
+    # 5. RENDERIZADO
+    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
+    seleccion_tiendas = {}
+    contador_grafica = 0
+
+    with col_precios:
+        st.markdown("#### 💰 Ofertas Actuales")
+        for i, row in df_resumen.iterrows():
+            tienda = row['Tienda']
+            opciones = row['Opciones']
+            
+            # ### NUEVO ### DESPLEGABLE SI HAY MÁS DE UNA OPCIÓN
+            if len(opciones) > 1:
+                # El selectbox permite elegir entre variedades (ej: Normal vs Repet)
+                fmt = lambda x: f"$ {x['Precio']:,.0f} ({x['Disponibilidad']})"
+                opcion_elegida = st.selectbox(
+                    f"Opciones en {tienda}", 
+                    opciones, 
+                    format_func=fmt, 
+                    key=f"sel_{tienda}_{selected_sku}"
+                )
+            else:
+                opcion_elegida = opciones[0]
+
+            # Usamos los datos de la opción elegida
+            precio_val = opcion_elegida['Precio']
+            dispo_status = str(opcion_elegida['Disponibilidad']).strip().capitalize()
+            esta_agotado = "Agotado" in dispo_status
+            precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
+            color_tienda = mapa_colores[tienda]
+            
+            # Lógica de marcado inicial (Top 5 con stock)
+            check_inicial = False
+            if not esta_agotado and contador_grafica < 5:
+                check_inicial = True
+                contador_grafica += 1
+            
+            es_top = (i == 0 and not esta_agotado)
+            
+            c_check, c_card = st.columns([0.1, 0.9])
+            with c_check:
+                # La selección guarda la tienda y la opción específica elegida
+                seleccion_tiendas[tienda] = {
+                    "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
+                    "id_producto": opcion_elegida['id_producto']
+                }
+
+            with c_card:
+                # Tu HTML de tarjeta (usando precio_cl, bg_card, etc.)
+                # [Omitido por brevedad, usa tu código actual de html_final aquí]
+                st.markdown(f"*(Tu código HTML aquí con {precio_cl})*", unsafe_allow_html=True)
+
+    with col_grafica:
+        st.markdown("#### 📈 Evolución Histórica")
+        # ### NUEVO ###: Filtrar por el estado del checkbox
+        tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
+        
+        if tiendas_a_graficar:
+            fig = go.Figure()
+            for t in tiendas_a_graficar:
+                id_p = seleccion_tiendas[t]["id_producto"]
+                if id_p in historiales_por_id:
+                    df_h = historiales_por_id[id_p]
+                    fig.add_trace(go.Scatter(
+                        x=df_h['fecha'], y=df_h['precio'], 
+                        name=t, mode='lines',
+                        line=dict(color=mapa_colores[t], width=3)
+                    ))
+            fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), 
+                              showlegend=False, hovermode="x unified")
+            st.plotly_chart(fig, use_container_width=True)
 
     # 5. RENDERIZADO DE COLUMNAS
     col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
