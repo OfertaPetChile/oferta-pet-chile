@@ -236,7 +236,7 @@ if selected_sku:
                 
                 seleccion_tiendas[tienda] = {
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
-                    "id_producto": opcion_elegica['id_producto'] # <--- Importante para la gráfica
+                    "id_producto": opcion_elegida['id_producto'] # <--- Importante para la gráfica
                 }
 
             with c_card:
