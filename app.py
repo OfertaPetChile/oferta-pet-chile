@@ -193,7 +193,7 @@ if selected_sku:
                 
                 # Formateo y Colores
                 precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
-                color_punto = mapa_colores.get(tienda, "#eee")
+                color_tienda = mapa_colores.get(tienda, "#eee")
                 es_top = (i == 0 and not esta_agotado)
                 
                 # Variables que causaban el error NameError
@@ -211,7 +211,7 @@ if selected_sku:
                 html_card = f"""
                 <div style="display:flex; justify-content:space-between; align-items:center; background:{bg_card}; padding:8px 12px; border-radius:8px; border:1px solid {border_card}; margin-top:-5px; margin-bottom:12px; height:56px; width:100%;">
                     <div style="display:flex; align-items:center; width:150px;">
-                        <div style="width:12px; height:12px; border-radius:50%; background:{color_punto}; margin-right:10px;"></div>
+                        <div style="width:12px; height:12px; border-radius:50%; background:{color_tienda}; margin-right:10px;"></div>
                         <div style="opacity:{opacidad_info};">
                             <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
                             {badge}
