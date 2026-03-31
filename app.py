@@ -167,7 +167,7 @@ if selected_sku:
                 /* 1. POSICIÓN DE LA CARD (Contenedor del selectbox) */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                     margin-top: 0px !important; 
-                    margin-bottom: -5px !important;
+                    margin-bottom: -3px !important;
                     display: flex;
                     justify-content: center;
                     min-height: 45px !important; 
