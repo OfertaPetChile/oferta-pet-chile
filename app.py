@@ -221,24 +221,30 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. DESPLEGABLE (Ubicado en la franja inferior de 52px)
+                # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
                 if tiene_opciones:
-                    # Ajuste: Usamos un div con margin-top negativo que ENCIERRE al widget
-                    # -20px suele ser el punto dulce para centrarlo en la mitad inferior
-                    m_top_select = "-22px" 
-                    
-                    st.markdown(f'<div style="margin-top:{m_top_select};">', unsafe_allow_html=True)
-                    
-                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                    opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", 
-                        opciones, 
-                        format_func=fmt, 
-                        key=op_id, 
-                        label_visibility="collapsed"
+                    # Inyectamos un pequeño ajuste CSS específico para este bloque
+                    # El margen negativo dentro del estilo del div sube el widget REALMENTE
+                    st.markdown(
+                        f"""
+                        <style>
+                            div[data-testid="stVerticalBlock"] > div:has(div[key="{op_id}"]) {{
+                                margin-top: -25px !important;
+                            }}
+                        </style>
+                        """, 
+                        unsafe_allow_html=True
                     )
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    with st.container():
+                        fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                        opcion_elegida = st.selectbox(
+                            f"Variedad en {tienda}", 
+                            opciones, 
+                            format_func=fmt, 
+                            key=op_id, 
+                            label_visibility="collapsed"
+                        )
                 else:
                     opcion_elegida = opciones[0]
 
