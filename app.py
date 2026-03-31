@@ -6,9 +6,9 @@ import plotly.colors as pc
 
 # 1. Configuración de página
 st.set_page_config(
-    page_title="Oferta Pet Chile",
-    page_icon="🐾",
-    layout="wide"
+   page_title="Oferta Pet Chile",
+   page_icon="🐾",
+   layout="wide"
 )
 
 # 2. Conexión a Supabase
