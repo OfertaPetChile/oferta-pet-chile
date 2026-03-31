@@ -174,7 +174,7 @@ if selected_sku:
                 if tiene_opciones:
                     h_total = "105px"
                     # En tarjeta doble, usamos un margen negativo sutil para subir el bloque superior
-                    m_top_contenido = "-5px" 
+                    m_top_contenido = "-8px" 
                 else:
                     h_total = "52px"
                     # En tarjeta simple, subimos más para compensar el espacio del contenedor
