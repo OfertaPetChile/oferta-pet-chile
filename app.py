@@ -167,7 +167,7 @@ if selected_sku:
                 /* 1. POSICIÓN DE LA CARD (Contenedor del selectbox) */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                     margin-top: 0px !important; 
-                    margin-bottom: 0px !important;
+                    margin-bottom: -10px !important;
                     display: flex;
                     justify-content: center;
                     min-height: 45px !important; 
@@ -274,14 +274,18 @@ if selected_sku:
                 st.markdown(info_html, unsafe_allow_html=True)
 
                 # 4. DESPLEGABLE (SUBIDA REAL)
+                # 4. DESPLEGABLE
                 if tiene_opciones:
-                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                    opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", opciones, format_func=fmt, 
-                        key=op_id, label_visibility="collapsed"
-                    )
-                else:
-                    opcion_elegida = opciones[0]                       
+                   # Usamos replace para asegurar el punto en los miles
+                   fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}".replace(",", ".")
+
+                   opcion_elegida = st.selectbox(
+                      f"Variedad en {tienda}", 
+                      opciones, 
+                      format_func=fmt, 
+                      key=op_id, 
+                      label_visibility="collapsed"
+                  )                       
                    
             with c_check:
                 # Alineación del checkbox para que coincida con el centro de los primeros 52px
