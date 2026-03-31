@@ -16,6 +16,17 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
+# --- FUNCIONES DE APOYO ---
+def obtener_estilo_metal(porcentaje):
+    """Retorna (background, color_texto, texto) según el ahorro."""
+    if porcentaje >= 10:
+        return "linear-gradient(135deg, #FFD700 0%, #FDB931 100%)", "#4B3B00", f"{porcentaje}% ¡OFERTA ORO!"
+    elif porcentaje >= 5:
+        return "linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)", "#333333", f"{porcentaje}% OFERTA PLATA"
+    elif porcentaje >= 1:
+        return "linear-gradient(135deg, #CD7F32 0%, #A0522D 100%)", "#ffffff", f"{porcentaje}% PRECIO BRONCE"
+    return None, None, None
+
 # --- LÓGICA DE NAVEGACIÓN ---
 params = st.query_params
 selected_sku = params.get("sku")
@@ -34,6 +45,21 @@ st.markdown("""
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        position: relative; /* Crítico para badges flotantes */
+    }
+    .badge-dinamico {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        box-shadow: 1px 2px 4px rgba(0,0,0,0.2);
+        z-index: 10;
+        border: 1px solid rgba(0,0,0,0.1);
+        letter-spacing: 0.3px;
     }
     .product-card:hover {
         box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -79,7 +105,6 @@ if selected_sku:
     st.title(f"📊 {nombre_oficial}")
     st.divider()
 
-    # 1. Carga de Datos (Asegúrate de incluir disponibilidad)
     res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
     if not res_prod.data:
@@ -104,17 +129,22 @@ if selected_sku:
             })
             historiales_por_id[id_p] = df_h.sort_values(by="fecha")
 
-    # 2. AGRUPAR POR TIENDA
+    # --- CÁLCULO DEL SUELO DE 30 DÍAS ---
+    if historiales_por_id:
+        todos_los_precios = pd.concat(historiales_por_id.values())
+        minimos_diarios = todos_los_precios.groupby('fecha')['precio'].min()
+        suelo_30d = minimos_diarios.tail(30).mean()
+    else:
+        suelo_30d = 0
+
     tiendas_agrupadas = {}
     for item in datos_tabla:
         t = item['Tienda']
-        if t not in tiendas_agrupadas:
-            tiendas_agrupadas[t] = []
+        if t not in tiendas_agrupadas: tiendas_agrupadas[t] = []
         tiendas_agrupadas[t].append(item)
 
-    resumen_tiendas =[]
+    resumen_tiendas = []
     for tienda, opciones in tiendas_agrupadas.items():
-        # Ordenamos opciones por precio (la más barata primero por defecto)
         opciones_ord = sorted(opciones, key=lambda x: x['Precio'])
         principal = opciones_ord[0]
         resumen_tiendas.append({
@@ -126,36 +156,21 @@ if selected_sku:
 
     df_resumen = pd.DataFrame(resumen_tiendas)
     
-    # 3. GENERAR MAPA DE COLORES ANTES DE ORDENAR
     colores_fijos = {
-        "Punto Mascotas": "#a6a6a6",   
-        "LH Petshop": "#326475",       
-        "Distribuidora Lira": "#cd0201", 
-        "Pet Kingdom": "#6b1e46",      
-        "Laika": "#5e17eb",            
-        "PetBJ": "#0c15f5",            
-        "Amigales": "#00b0f0",         
-        "Superzoo": "#d504b9",         
-        "JardinZoo": "#31ab5c",        
-        "Tus Mascotas": "#c1ff72",     
-        "Laika Member": "#9662fe",     
-        "Petvet Repet": "#e2c78a",    
-        "BestForPets": "#C4FF1A",      
-        "Braloy": "#8aeef2",           
-        "Razaspet": "#ffcc11",        
-        "Petvet": "#907740",           
-        "CPyG": "#fb8bd0",            
+        "Punto Mascotas": "#a6a6a6", "LH Petshop": "#326475", "Distribuidora Lira": "#cd0201",
+        "Pet Kingdom": "#6b1e46", "Laika": "#5e17eb", "PetBJ": "#0c15f5", "Amigales": "#00b0f0",
+        "Superzoo": "#d504b9", "JardinZoo": "#31ab5c", "Tus Mascotas": "#c1ff72",
+        "Laika Member": "#9662fe", "Petvet Repet": "#e2c78a", "BestForPets": "#C4FF1A",
+        "Braloy": "#8aeef2", "Razaspet": "#ffcc11", "Petvet": "#907740", "CPyG": "#fb8bd0",
     } 
 
     mapa_colores = {t: colores_fijos.get(t, pc.qualitative.Alphabet[i % 26]) 
                     for i, t in enumerate(df_resumen['Tienda'].unique())}
     
-    # 4. ORDENAMIENTO POR STOCK Y PRECIO MÍNIMO
     df_resumen['Dispo_limpia'] = df_resumen['Disponibilidad'].astype(str).str.strip().str.capitalize()
     df_resumen['prioridad_stock'] = df_resumen['Dispo_limpia'].apply(lambda x: 0 if "Disponible" in x or "Stock" in x else 1)
     df_resumen = df_resumen.sort_values(by=['prioridad_stock', 'Precio_Min'], ascending=[True, True]).reset_index(drop=True)
 
-    # 5. RENDERIZADO
     col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
     contador_grafica = 0
@@ -164,75 +179,32 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         st.markdown("""
             <style>
-                /* 1. POSICIÓN DE LA CARD (Contenedor del selectbox) */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
-                    margin-top: 0px !important; 
-                    margin-bottom: -4px !important;
-                    display: flex;
-                    justify-content: center;
-                    min-height: 45px !important; 
+                    margin-top: 0px !important; margin-bottom: -4px !important;
+                    display: flex; justify-content: center; min-height: 45px !important; 
                 }
-
-                div[data-testid="stSelectbox"] {
-                    width: 90% !important; 
-                    margin-top: 1px !important; 
-                    margin-bottom: 3px !important;
-                    z-index: 10;
-                }
-
-                /* 2. EL TEXTO SELECCIONADO  */
+                div[data-testid="stSelectbox"] { width: 90% !important; z-index: 10; }
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-                    border-radius: 20px !important; 
-                    height: 35px !important; 
-                    min-height: 35px !important; 
-                    border: 1px solid #ddd !important;
-                    background-color: #fcfcfc !important;
-                    display: flex !important;
-                    align-items: center !important;
+                    border-radius: 20px !important; height: 35px !important; min-height: 35px !important;
                 }
-
-                /* Tamaño de letra del valor seleccionado */
-                div[data-testid="stSelectbox"] [data-baseweb="select"] * {
-                    font-size: 12px !important; 
-                }
-                
-                /* 3. LA LISTA DESPLEGABLE (EL POPUP QUE SE ABRE) */                
-                div[role="listbox"] li, 
-                div[role="listbox"] div,
-                div[role="listbox"] span,
-                [data-baseweb="popover"] * {
-                    font-size: 12px !important; 
-                }
-
-                /* Altura de las filas en la lista para que coincida con la letra chica */
-                div[role="option"] {
-                    min-height: 24px !important;
-                    padding-top: 2px !important;
-                    padding-bottom: 2px !important;
-                }
-
             </style>
         """, unsafe_allow_html=True)
-       
+        
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
             tiene_opciones = len(opciones) > 1
             
-            c_check, c_card = st.columns([0.1, 0.9])
-            
-            with c_card:
-                # 1. DEFINICIÓN DE ALTURAS
-                if tiene_opciones:
-                    h_total = "105px"
-                    # En tarjeta doble, usamos un margen negativo sutil para subir el bloque superior
-                    m_top_contenido = "-8px" 
-                else:
-                    h_total = "52px"
-                    # En tarjeta simple, subimos más para compensar el espacio del contenedor
-                    m_top_contenido = "-8px"
+            # --- LÓGICA DE BADGE METÁLICO ---
+            precio_evaluar = row['Precio_Min']
+            pct_ahorro = int(((suelo_30d - precio_evaluar) / suelo_30d) * 100)
+            bg_m, txt_m, texto_m = obtener_estilo_metal(pct_ahorro)
+            badge_html = f'<div class="badge-dinamico" style="background:{bg_m}; color:{txt_m};">{texto_m}</div>' if bg_m else ""
 
-                # 2. FONDO DE LA TARJETA (Z-INDEX 0)
+            c_check, c_card = st.columns([0.1, 0.9])
+            with c_card:
+                h_total = "105px" if tiene_opciones else "52px"
+                m_top_contenido = "-8px"
                 color_t = mapa_colores.get(tienda, "#eee")
                 esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_init)
@@ -242,19 +214,16 @@ if selected_sku:
                 st.markdown(
                     f'<div style="background-color:{bg_c}; border:1px solid {brd_c}; '
                     f'border-radius:8px; height:{h_total}; width:100%; position:absolute; '
-                    f'z-index:0; box-shadow:0 2px 4px rgba(0,0,0,0.02);"></div>', 
+                    f'z-index:0; box-shadow:0 2px 4px rgba(0,0,0,0.02);">{badge_html}</div>', 
                     unsafe_allow_html=True
                 )
 
-                # 3. BLOQUE DE INFORMACIÓN (Centrado en la franja superior de 52px)
                 op_id = f"sel_{tienda}_{selected_sku}"
                 opcion_actual = st.session_state.get(op_id, opciones[0]) if tiene_opciones else opciones[0]
-                
                 precio_cl = f"$ {opcion_actual['Precio']:,.0f}".replace(",", ".")
                 opac = "0.5" if "Agotado" in str(opcion_actual['Disponibilidad']).capitalize() else "1.0"
                 btn_bg = "#ccc" if opac == "0.5" else "#1abc9c"
 
-                # m_top_contenido es la clave para el centrado
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
                     f'padding:0 12px; height:52px; position:relative; z-index:2; margin-top:{m_top_contenido};">'
@@ -273,18 +242,13 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. DESPLEGABLE
                 if tiene_opciones:
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}".replace(",",".")
-                    opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", opciones, format_func=fmt, 
-                        key=op_id, label_visibility="collapsed"
-                    )
+                    opcion_elegida = st.selectbox(f"Variedad en {tienda}", opciones, format_func=fmt, key=op_id, label_visibility="collapsed")
                 else:
                     opcion_elegida = opciones[0]                       
                    
             with c_check:
-                # Alineación del checkbox para que coincida con el centro de los primeros 52px
                 st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
                 check_val = (not esta_agotado_init and contador_grafica < 5)
                 if check_val: contador_grafica += 1
@@ -296,20 +260,14 @@ if selected_sku:
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
-        
         if tiendas_a_graficar:
             fig = go.Figure()
             for t in tiendas_a_graficar:
                 id_p = seleccion_tiendas[t]["id_producto"]
                 if id_p in historiales_por_id:
                     df_h = historiales_por_id[id_p]
-                    fig.add_trace(go.Scatter(
-                        x=df_h['fecha'], y=df_h['precio'], 
-                        name=t, mode='lines',
-                        line=dict(color=mapa_colores[t], width=3)
-                    ))
-            fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), 
-                              showlegend=False, hovermode="x unified")
+                    fig.add_trace(go.Scatter(x=df_h['fecha'], y=df_h['precio'], name=t, mode='lines', line=dict(color=mapa_colores[t], width=3)))
+            fig.update_layout(template="plotly_white", height=500, margin=dict(l=0,r=0,t=10,b=0), showlegend=False, hovermode="x unified")
             st.plotly_chart(fig, use_container_width=True)
 
 # --- VISTA 1: GALERÍA PRINCIPAL ---
