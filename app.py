@@ -170,35 +170,29 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Definimos altura y espaciado según si hay opciones
+                # 1. Configuración de alturas
                 if tiene_opciones:
-                    h_f, p_top_base = "98px", "42px"
+                    h_total, m_top_info = "100px", "-25px"
                 else:
-                    h_f, p_top_base = "56px", "0px"
+                    h_total, m_top_info = "56px", "0px"
 
-                # 2. Variables de datos y colores
-                esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize() if 'opcion_elegida' in locals() else False
-                # (Nota: Movemos la lógica de la opción elegida antes del HTML para tener los datos)
-                
-                # --- TRUCO DE RENDERIZADO: El HTML va PRIMERO como fondo ---
+                # 2. Renderizado del Fondo (Capa trasera)
                 color_t = mapa_colores.get(tienda, "#eee")
-                es_top = (i == 0 and (not esta_agotado if 'esta_agotado' in locals() else True))
-                bg_c = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+                esta_agotado_inicial = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
+                es_top = (i == 0 and not esta_agotado_inicial)
+                bg_c = '#f0fff4' if es_top else ('#fafafa' if esta_agotado_inicial else 'white')
                 brd_c = '#2ecc71' if es_top else '#eee'
-                
-                # Renderizamos la tarjeta vacía pero con su altura final
-                # Usamos margin-bottom negativo para que el selectbox se pose sobre ella
+
                 st.markdown(
                     f'<div style="background-color:{bg_c}; border:1px solid {brd_c}; '
-                    f'border-radius:8px; height:{h_f}; width:100%; position:absolute; '
+                    f'border-radius:8px; height:{h_total}; width:100%; position:absolute; '
                     f'z-index:0; box-shadow:0 2px 4px rgba(0,0,0,0.02);"></div>', 
                     unsafe_allow_html=True
                 )
 
-                # 3. El Selectbox ahora se renderiza "encima" del div absoluto anterior
+                # 3. Selector (Capa media - Solo si hay opciones)
                 if tiene_opciones:
-                    # Un pequeño espacio para despegar el selectbox del borde superior de la card
-                    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+                    st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", opciones, format_func=fmt, 
@@ -207,17 +201,16 @@ if selected_sku:
                 else:
                     opcion_elegida = opciones[0]
 
-                # 4. Contenido de la tarjeta (Precio, Botón, Tienda)
-                # Volvemos a calcular con la opción ya elegida
+                # 4. Bloque de Información (Capa superior)
                 esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
                 precio_cl = f"$ {opcion_elegida['Precio']:,.0f}".replace(",", ".")
                 opac = "0.5" if esta_agotado else "1.0"
                 btn_bg = "#ccc" if esta_agotado else "#1abc9c"
                 
-                # Este bloque de info flota sobre el fondo anterior
+                # m_top_info sube el contenido para que entre en la card
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
-                    f'padding:0 12px; height:54px; position:relative; z-index:2; margin-top:{0 if tiene_opciones else 0}px;">'
+                    f'padding:0 12px; height:54px; position:relative; z-index:2; margin-top:{m_top_info};">'
                     f'<div style="display:flex; align-items:center; width:150px;">'
                     f'<div style="width:12px; height:12px; border-radius:50%; background-color:{color_t}; margin-right:10px;"></div>'
                     f'<div style="opacity:{opac}; font-size:13px; font-weight:800; color:#333;">{tienda}</div>'
