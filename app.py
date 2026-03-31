@@ -165,12 +165,13 @@ if selected_sku:
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
-
+            
+            # 1. Lógica del Desplegable (Selectbox)
             if len(opciones) > 1:
-                # El selectbox permite elegir entre variedades (ej: Normal vs Repet)
-                fmt = lambda x: f"$ {x['Precio']:,.0f} ({x['Disponibilidad']})"
+                # Mostramos el precio y el estado en el selector
+                fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                 opcion_elegida = st.selectbox(
-                    f"Opciones en {tienda}", 
+                    f"Variedad en {tienda}", 
                     opciones, 
                     format_func=fmt, 
                     key=f"sel_{tienda}_{selected_sku}"
@@ -178,29 +179,40 @@ if selected_sku:
             else:
                 opcion_elegida = opciones[0]
 
-            # Usamos los datos de la opción elegida
+            # 2. Extraer datos de la opción seleccionada
             precio_val = opcion_elegida['Precio']
+            url_tienda = opcion_elegida['URL']
             dispo_status = str(opcion_elegida['Disponibilidad']).strip().capitalize()
             esta_agotado = "Agotado" in dispo_status
+            
             precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
-            color_tienda = mapa_colores[tienda]
-
-            # Lógica de marcado inicial (Top 5 con stock)
-            check_inicial = False
-            if not esta_agotado and contador_grafica < 5:
-                check_inicial = True
-                contador_grafica += 1
+            color_tienda = mapa_colores.get(tienda, "#eee")
             
+            # 3. Definir Variables de Estilo (Evita el Error de la línea 209)
             es_top = (i == 0 and not esta_agotado)
-            
+            opacidad_info = "0.5" if esta_agotado else "1.0"
+            bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+            border_card = '#2ecc71' if es_top else '#eee'
+            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+            btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
+            p_events = "none" if esta_agotado else "auto"
+
+            # 4. Renderizado de Checkbox y Tarjeta
             c_check, c_card = st.columns([0.1, 0.9])
+            
             with c_check:
-                # La selección guarda la tienda y la opción específica elegida
+                # Marcado automático para los primeros 5 con stock
+                check_inicial = False
+                if not esta_agotado and contador_grafica < 5:
+                    check_inicial = True
+                    contador_grafica += 1
+                
+                # Guardamos el estado y el ID específico para la gráfica
                 seleccion_tiendas[tienda] = {
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
                     "id_producto": opcion_elegida['id_producto']
                 }
-                
+
             with c_card:
                 badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
@@ -218,7 +230,7 @@ if selected_sku:
                     f'<div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opacidad_info};">'
                     f'<span style="font-size:14px;font-weight:800;color:#2c3e50;">{precio_cl}</span>'
                     f'</div>'
-                    f'<a href="{row["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
+                    f'<a href="{url_tienda}" target="_blank" style="background-color:{btn_bg};color:white;'
                     f'padding:5px 12px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
                     f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
                     f'</div>'
