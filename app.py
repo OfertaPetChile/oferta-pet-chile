@@ -185,12 +185,12 @@ if selected_sku:
                     min-height: 30px !important;
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
-                    font-size: 11px !important; /* <--- Ajusta este valor para achicar la letra */
+                    font-size: 12px !important; /* 
                 }
 
                 /* También ajustamos la letra de las opciones cuando se despliegan */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] div {
-                    font-size: 11px !important;
+                    font-size: 10px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
