@@ -162,81 +162,55 @@ if selected_sku:
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
-        
-        # Iteramos sobre el resumen agrupado (Asegúrate de que df_resumen esté definido arriba)
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
             
-            # 1. Columnas: Checkbox | Bloque de Contenido
+            # 1. Lógica del Desplegable (Selectbox)
+            if len(opciones) > 1:
+                # Mostramos el precio y el estado en el selector
+                fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                opcion_elegida = st.selectbox(
+                    f"Variedad en {tienda}", 
+                    opciones, 
+                    format_func=fmt, 
+                    key=f"sel_{tienda}_{selected_sku}"
+                )
+            else:
+                opcion_elegida = opciones[0]
+
+            # 2. Extraer datos de la opción seleccionada
+            precio_val = opcion_elegida['Precio']
+            url_tienda = opcion_elegida['URL']
+            dispo_status = str(opcion_elegida['Disponibilidad']).strip().capitalize()
+            esta_agotado = "Agotado" in dispo_status
+            
+            precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
+            color_tienda = mapa_colores.get(tienda, "#eee")
+            
+            # 3. Definir Variables de Estilo (Evita el Error de la línea 209)
+            es_top = (i == 0 and not esta_agotado)
+            opacidad_info = "0.5" if esta_agotado else "1.0"
+            bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+            border_card = '#2ecc71' if es_top else '#eee'
+            btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+            btn_txt = "Sin Stock" if esta_agotado else "Ir al sitio"
+            p_events = "none" if esta_agotado else "auto"
+
+            # 4. Renderizado de Checkbox y Tarjeta
             c_check, c_card = st.columns([0.1, 0.9])
             
-            with c_card:
-                # --- PASO 1: Determinar la opción elegida ---
-                if len(opciones) > 1:
-                    fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                    opcion_elegida = st.selectbox(
-                        f"Opciones para {tienda}", 
-                        opciones, 
-                        format_func=fmt, 
-                        key=f"sel_{tienda}_{selected_sku}",
-                        label_visibility="collapsed"
-                    )
-                else:
-                    opcion_elegida = opciones[0]
-
-                # --- PASO 2: Definir TODAS las variables de estilo (Blindaje) ---
-                precio_val = opcion_elegida['Precio']
-                url_tienda = opcion_elegida['URL']
-                dispo_raw = str(opcion_elegida['Disponibilidad']).strip().capitalize()
-                esta_agotado = "Agotado" in dispo_raw
-                
-                # Formateo y Colores
-                precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
-                color_tienda = mapa_colores.get(tienda, "#eee")
-                es_top = (i == 0 and not esta_agotado)
-                
-                # Variables que causaban el error NameError
-                opacidad_info = "0.5" if esta_agotado else "1.0"
-                bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
-                border_card = '#2ecc71' if es_top else '#eee'
-                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                btn_txt = "Agotado" if esta_agotado else "Ir al sitio"
-                p_events = "none" if esta_agotado else "auto"
-
-                # --- PASO 3: Renderizado HTML Limpio ---
-                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
-                
-                # Usamos una sola cadena f-string sin saltos de línea complejos para evitar que Streamlit lo rompa
-                html_card = f"""
-                <div style="display:flex; justify-content:space-between; align-items:center; background:{bg_card}; padding:8px 12px; border-radius:8px; border:1px solid {border_card}; margin-top:-5px; margin-bottom:12px; height:56px; width:100%;">
-                    <div style="display:flex; align-items:center; width:150px;">
-                        <div style="width:12px; height:12px; border-radius:50%; background:{color_tienda}; margin-right:10px;"></div>
-                        <div style="opacity:{opacidad_info};">
-                            <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
-                            {badge}
-                        </div>
-                    </div>
-                    <div style="flex-grow:1; text-align:right; margin-right:15px; opacity:{opacidad_info};">
-                        <span style="font-size:15px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
-                    </div>
-                    <a href="{url_tienda}" target="_blank" style="background:{btn_bg}; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; pointer-events:{p_events};">
-                        {btn_txt}
-                    </a>
-                </div>
-                """
-                st.markdown(html_card, unsafe_allow_html=True)
-
             with c_check:
-                # El checkbox se sincroniza con la opción elegida arriba
+                # Marcado automático para los primeros 5 con stock
                 check_inicial = False
                 if not esta_agotado and contador_grafica < 5:
                     check_inicial = True
                     contador_grafica += 1
                 
+                # Guardamos el estado y el ID específico para la gráfica
                 seleccion_tiendas[tienda] = {
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
-                    "id_producto": opcion_elegida['id_producto'] # <--- Importante para la gráfica
+                    "id_producto": opcion_elegida['id_producto']
                 }
 
             with c_card:
@@ -262,7 +236,7 @@ if selected_sku:
                     f'</div>'
                 )
                 st.markdown(html_final, unsafe_allow_html=True)
-                
+               
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
