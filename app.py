@@ -170,15 +170,15 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. PARAMETRIZACIÓN DIFERENCIADA
+                # 1. MEDIDAS EXACTAS [Ref: image_039324.png]
                 if tiene_opciones:
-                    h_card = "105px"
-                    m_top_contenido = "0px"   # Posición estándar arriba
+                    h_total = "105px"
+                    m_top_info = "0px"   # Centrado en los primeros 52px
                 else:
-                    h_card = "52px"
-                    m_top_contenido = "-10px"  # ELEVAMOS los datos solo en tarjetas simples
+                    h_total = "52px"
+                    m_top_info = "-2px"  # Ajuste fino para centrado óptico en 52px
 
-                # 2. CAPA DE FONDO (Z-INDEX 0)
+                # 2. FONDO DE LA TARJETA
                 color_t = mapa_colores.get(tienda, "#eee")
                 esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_init)
@@ -187,27 +187,25 @@ if selected_sku:
 
                 st.markdown(
                     f'<div style="background-color:{bg_c}; border:1px solid {brd_c}; '
-                    f'border-radius:8px; height:{h_card}; width:100%; position:absolute; '
+                    f'border-radius:8px; height:{h_total}; width:100%; position:absolute; '
                     f'z-index:0; box-shadow:0 2px 4px rgba(0,0,0,0.02);"></div>', 
                     unsafe_allow_html=True
                 )
 
-                # 3. CAPA DE INFORMACIÓN (Tienda, Precio, Botón)
-                # Obtenemos la opción (de session_state para que el select sea reactivo)
+                # 3. BLOQUE SUPERIOR (52 px de alto)
                 op_id = f"sel_{tienda}_{selected_sku}"
                 opcion_actual = st.session_state.get(op_id, opciones[0]) if tiene_opciones else opciones[0]
                 
                 precio_cl = f"$ {opcion_actual['Precio']:,.0f}".replace(",", ".")
                 opac = "0.5" if "Agotado" in str(opcion_actual['Disponibilidad']).capitalize() else "1.0"
                 btn_bg = "#ccc" if opac == "0.5" else "#1abc9c"
-                badge = f'<span style="background:#e74c3c;color:white;padding:1px 4px;border-radius:4px;font-size:9px;font-weight:bold;display:block;">AGOTADO</span>' if opac == "0.5" else ""
 
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
-                    f'padding:0 12px; height:54px; position:relative; z-index:2; margin-top:{m_top_contenido};">'
+                    f'padding:0 12px; height:52px; position:relative; z-index:2; margin-top:{m_top_info};">'
                     f'<div style="display:flex; align-items:center; width:150px;">'
                     f'<div style="width:12px; height:12px; border-radius:50%; background-color:{color_t}; margin-right:10px;"></div>'
-                    f'<div><div style="opacity:{opac}; font-size:13px; font-weight:800; color:#333;">{tienda}</div>{badge}</div>'
+                    f'<div style="opacity:{opac}; font-size:13px; font-weight:800; color:#333;">{tienda}</div>'
                     f'</div>'
                     f'<div style="flex-grow:1; text-align:right; margin-right:12px; opacity:{opac};">'
                     f'<span style="font-size:15px; font-weight:800; color:#2c3e50;">{precio_cl}</span>'
@@ -220,20 +218,33 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
+                # 4. DESPLEGABLE (Centrado en los 52px inferiores, altura ~40px)
                 if tiene_opciones:
-                    # Este pequeño espacio empuja el select hacia la mitad inferior exacta
+                    # Contenedor para forzar la altura de 40px y centrarlo
+                    # El margen negativo compensa el espacio extra que Streamlit reserva para widgets
                     st.markdown('<div style="height:2px;"></div>', unsafe_allow_html=True)
-                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                    opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", opciones, format_func=fmt, 
-                        key=op_id, label_visibility="collapsed"
+                    with st.container():
+                        fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                        opcion_elegida = st.selectbox(
+                            f"Variedad en {tienda}", opciones, format_func=fmt, 
+                            key=op_id, label_visibility="collapsed"
+                        )
+                    # CSS inyectado solo para este selectbox para reducir su altura interna a 40px
+                    st.markdown(
+                        f"""<style>
+                        div[data-testid="stSelectbox"] {{
+                            margin-top: -5px;
+                            transform: scale(0.95);
+                        }}
+                        </style>""", 
+                        unsafe_allow_html=True
                     )
                 else:
                     opcion_elegida = opciones[0]
 
             with c_check:
-                # El checkbox se mantiene alineado a la parte superior de la card
+                # Checkbox alineado a la parte superior (mitad de los primeros 52px)
+                st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
                 check_val = (not esta_agotado_init and contador_grafica < 5)
                 if check_val: contador_grafica += 1
                 seleccion_tiendas[tienda] = {
