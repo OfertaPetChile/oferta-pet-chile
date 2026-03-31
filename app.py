@@ -162,6 +162,33 @@ if selected_sku:
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
+
+        # --- ESTE ES EL BLOQUE QUE REEMPLAZA LOS PARCHES ---
+        st.markdown("""
+            <style>
+                /* 1. Succionamos el contenedor del selectbox hacia arriba */
+                [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
+                    margin-top: -30px !important; 
+                    margin-bottom: 0px !important;
+                    display: flex;
+                    justify-content: center;
+                }
+                /* 2. Lo hacemos más angosto y centrado */
+                div[data-testid="stSelectbox"] {
+                    width: 90% !important; 
+                    margin: 0 auto !important;
+                    padding-top: 0px !important;
+                }
+                /* 3. Bordes redondeados tipo píldora y altura slim */
+                div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+                    border-radius: 20px !important; 
+                    min-height: 30px !important;
+                    border: 1px solid #ddd !important;
+                    background-color: #fcfcfc !important;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
@@ -170,17 +197,11 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. DEFINICIÓN DE ALTURAS SEGÚN ESQUEMA [Ref: image_039324.png]
-                if tiene_opciones:
-                    h_total = "105px"
-                    # En tarjeta doble, usamos un margen negativo sutil para subir el bloque superior
-                    m_top_contenido = "-8px" 
-                else:
-                    h_total = "52px"
-                    # En tarjeta simple, subimos más para compensar el espacio del contenedor
-                    m_top_contenido = "-8px"
+                # 1. DEFINICIÓN DE ALTURAS
+                h_total = "105px" if tiene_opciones else "52px"
+                m_top_contenido = "-8px" # Mantenemos tu centrado que ya funcionaba
 
-                # 2. FONDO DE LA TARJETA (Z-INDEX 0)
+                # 2. FONDO DE LA TARJETA
                 color_t = mapa_colores.get(tienda, "#eee")
                 esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_init)
@@ -194,7 +215,7 @@ if selected_sku:
                     unsafe_allow_html=True
                 )
 
-                # 3. BLOQUE DE INFORMACIÓN (Centrado en la franja superior de 52px)
+                # 3. BLOQUE DE INFORMACIÓN
                 op_id = f"sel_{tienda}_{selected_sku}"
                 opcion_actual = st.session_state.get(op_id, opciones[0]) if tiene_opciones else opciones[0]
                 
@@ -202,7 +223,6 @@ if selected_sku:
                 opac = "0.5" if "Agotado" in str(opcion_actual['Disponibilidad']).capitalize() else "1.0"
                 btn_bg = "#ccc" if opac == "0.5" else "#1abc9c"
 
-                # m_top_contenido es la clave para el centrado
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
                     f'padding:0 12px; height:52px; position:relative; z-index:2; margin-top:{m_top_contenido};">'
@@ -221,15 +241,15 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. DESPLEGABLE (SUBIDA REAL)
+                # 4. DESPLEGABLE (Ahora limpio, el CSS de arriba hace el trabajo)
                 if tiene_opciones:
-                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                    fmt = lambda x: f"Var: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", opciones, format_func=fmt, 
                         key=op_id, label_visibility="collapsed"
                     )
                 else:
-                    opcion_elegida = opciones[0]                       
+                    opcion_elegida = opciones[0]                    
                    
             with c_check:
                 # Alineación del checkbox para que coincida con el centro de los primeros 52px
