@@ -223,31 +223,32 @@ if selected_sku:
 
                 # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
                 if tiene_opciones:
-                    # Inyectamos un pequeño ajuste CSS específico para este bloque
-                    # El margen negativo dentro del estilo del div sube el widget REALMENTE
+                    # Usamos un div con position relative y top negativo
+                    # Esto lo "desplaza" hacia arriba sin mover el resto de las tarjetas
+                    m_top_move = "-28px" 
+                    
                     st.markdown(
-                        f"""
-                        <style>
-                            div[data-testid="stVerticalBlock"] > div:has(div[key="{op_id}"]) {{
-                                margin-top: -25px !important;
-                            }}
-                        </style>
-                        """, 
+                        f'<div style="position:relative; top:{m_top_move}; z-index:3; padding:0 10px;">', 
                         unsafe_allow_html=True
                     )
-
-                    with st.container():
-                        fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                        opcion_elegida = st.selectbox(
-                            f"Variedad en {tienda}", 
-                            opciones, 
-                            format_func=fmt, 
-                            key=op_id, 
-                            label_visibility="collapsed"
-                        )
+                    
+                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                    opcion_elegida = st.selectbox(
+                        f"Variedad en {tienda}", 
+                        opciones, 
+                        format_func=fmt, 
+                        key=op_id, 
+                        label_visibility="collapsed"
+                    )
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # Compensamos el espacio que dejó el movimiento para que la siguiente tarjeta 
+                    # no se pegue. Ajusta este height si ves que la tarjeta de abajo sube mucho.
+                    st.markdown('<div style="height:0px; margin-top:-20px;"></div>', unsafe_allow_html=True)
                 else:
                     opcion_elegida = opciones[0]
-
+                   
             with c_check:
                 # Alineación del checkbox para que coincida con el centro de los primeros 52px
                 st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
