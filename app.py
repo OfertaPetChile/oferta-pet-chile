@@ -162,6 +162,7 @@ if selected_sku:
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
+        st.markdown("""
             <style>
                 /* 1. El contenedor padre mantiene su espacio para evitar solapamiento */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
