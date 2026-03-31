@@ -184,8 +184,8 @@ if selected_sku:
                     border-radius: 20px !important; 
                     
                     /* 1. ALTURA: Achica este valor para que el desplegable sea más delgado */
-                    height: 25px !important; 
-                    min-height: 25px !important; 
+                    height: 35px !important; 
+                    min-height: 35px !important; 
 
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
@@ -200,7 +200,7 @@ if selected_sku:
 
                 /* Tamaño de letra */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] div {
-                    font-size: 11px !important;
+                    font-size: 12px !important;
                     line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
             </style>
