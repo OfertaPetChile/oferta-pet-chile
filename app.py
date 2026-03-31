@@ -4,78 +4,121 @@ import pandas as pd
 import plotly.graph_objects as go
 import plotly.colors as pc
 
-# 1. Configuración de página
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(
-   page_title="Oferta Pet Chile",
-   page_icon="🐾",
-   layout="wide"
+    page_title="Oferta Pet Chile",
+    page_icon="🐾",
+    layout="wide"
 )
 
-# 2. Conexión a Supabase
+# 2. CONEXIÓN A SUPABASE
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
 # --- FUNCIONES DE APOYO ---
 def obtener_estilo_metal(porcentaje):
+    """Retorna estilos para los badges de oferta."""
     if porcentaje >= 10:
-        return "linear-gradient(135deg, #FFD700 0%, #FDB931 100%)", "#4B3B00", f"{porcentaje}% ¡OFERTA ORO!"
+        return "linear-gradient(135deg, #FFD700 0%, #FDB931 100%)", "#4B3B00", f"{porcentaje}% ORO"
     elif porcentaje >= 5:
-        return "linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)", "#333333", f"{porcentaje}% OFERTA PLATA"
+        return "linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)", "#333333", f"{porcentaje}% PLATA"
     elif porcentaje >= 1:
-        return "linear-gradient(135deg, #CD7F32 0%, #A0522D 100%)", "#ffffff", f"{porcentaje}% PRECIO BRONCE"
+        return "linear-gradient(135deg, #CD7F32 0%, #A0522D 100%)", "#ffffff", f"{porcentaje}% BRONCE"
     return None, None, None
 
-# --- LÓGICA DE NAVEGACIÓN ---
-params = st.query_params
-selected_sku = params.get("sku")
+def calcular_ahorro_galeria(mi_sku):
+    """Calcula el ahorro rápido para mostrar badges en la galería principal."""
+    try:
+        res_p = supabase.table("Productos").select("id_producto").eq("mi_sku", mi_sku).execute()
+        ids = [p['id_producto'] for p in res_p.data]
+        if not ids: return 0
+        
+        res_h = supabase.table("Historial_precios").select("fecha, precio").in_("id_producto", ids).execute()
+        df = pd.DataFrame(res_h.data)
+        if df.empty: return 0
+        
+        precio_actual = df.sort_values("fecha").iloc[-1]['precio']
+        suelo_30d = df.groupby("fecha")['precio'].min().tail(30).mean()
+        return int(((suelo_30d - precio_actual) / suelo_30d) * 100) if suelo_30d > 0 else 0
+    except:
+        return 0
 
-# 3. ESTILOS CSS GLOBAL
+# --- ESTILOS CSS (SISTEMA DE CAPAS Z-INDEX) ---
 st.markdown("""
     <style>
+    /* Tarjeta Principal */
     .product-card {
         background-color: white;
         border-radius: 12px;
         padding: 15px;
         border: 1px solid #eee;
-        height: 400px;
+        height: 420px;
         text-align: center;
-        transition: 0.3s;
+        position: relative; 
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        position: relative;
+        z-index: 1;
+        transition: transform 0.2s;
     }
-    .product-card img {
+    .product-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    
+    /* Contenedor de Imagen */
+    .img-container {
         width: 100%;
-        height: 160px;
+        height: 180px;
+        background-color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 2; /* Debajo del badge */
+    }
+    .img-container img {
+        max-width: 100%;
+        max-height: 180px;
         object-fit: contain;
-        margin-bottom: 10px;
     }
-    .badge-dinamico {
+
+    /* Badge Metálico (Capa Superior) */
+    .badge-galeria {
         position: absolute;
-        top: 8px;
-        left: 8px;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 9px;
+        top: 12px;
+        left: 12px;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 10px;
         font-weight: 900;
-        text-transform: uppercase;
-        z-index: 10;
+        z-index: 999 !important; /* Asegura estar sobre la imagen */
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        letter-spacing: 0.5px;
     }
+
     .product-title {
         font-size: 14px;
         font-weight: 600;
         color: #2c3e50;
-        margin: 10px 0;
+        height: 45px;
         line-height: 1.2;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
         overflow: hidden;
+        margin: 10px 0;
+        z-index: 3;
+    }
+
+    /* Botones Streamlit Custom */
+    div.stButton > button {
+        border-radius: 8px;
+        font-weight: 600;
     }
     </style>
     """, unsafe_allow_html=True)
+
+# --- LÓGICA DE NAVEGACIÓN ---
+selected_sku = st.query_params.get("sku")
 
 # --- VISTA 2: DETALLE DEL PRODUCTO ---
 if selected_sku:
@@ -83,103 +126,97 @@ if selected_sku:
         st.query_params.clear()
         st.rerun()
 
-    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
-    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
-
-    st.title(f"📊 {nombre_oficial}")
+    # Obtener nombre oficial
+    res_m = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
+    st.title(f"📊 {res_m.data['nombre_oficial'] if res_m.data else 'Producto'}")
     
-    # Carga de datos
-    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
+    # Cargar ofertas y precios
+    res_p = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
-    if not res_prod.data:
-        st.warning("Sin ofertas disponibles.")
-        st.stop()
+    if res_p.data:
+        datos_ofertas = []
+        historiales = {}
+        
+        for p in res_p.data:
+            res_h = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
+            df_h = pd.DataFrame(res_h.data)
+            if not df_h.empty:
+                datos_ofertas.append({
+                    "Tienda": p['nombre_tienda'],
+                    "Precio": df_h.iloc[0]['precio'],
+                    "URL": p['url_tienda'],
+                    "Disponibilidad": p['disponibilidad'],
+                    "id": p['id_producto']
+                })
+                historiales[p['id_producto']] = df_h.sort_values("fecha")
 
-    datos_tabla = []
-    historiales_por_id = {}
-    
-    for p in res_prod.data:
-        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
-        df_h = pd.DataFrame(res_hist.data)
-        if not df_h.empty:
-            datos_tabla.append({
-                "id_producto": p['id_producto'],
-                "Tienda": p['nombre_tienda'], 
-                "Precio": df_h.iloc[0]['precio'], 
-                "URL": p['url_tienda'],
-                "Disponibilidad": p.get('disponibilidad')
-            })
-            historiales_por_id[p['id_producto']] = df_h.sort_values(by="fecha")
+        col1, col2 = st.columns([1, 2])
+        
+        with col1:
+            st.subheader("💰 Mejores Precios")
+            df_display = pd.DataFrame(datos_ofertas).sort_values("Precio")
+            for _, item in df_display.iterrows():
+                with st.container(border=True):
+                    st.markdown(f"**{item['Tienda']}**")
+                    st.markdown(f"## ${item['Precio']:,.0f}".replace(",", "."))
+                    st.caption(f"Stock: {item['Disponibilidad']}")
+                    st.link_button("Ver en tienda", item['URL'], use_container_width=True)
 
-    # Suelo de 30 días
-    if historiales_por_id:
-        todos_los_precios = pd.concat(historiales_por_id.values())
-        suelo_30d = todos_los_precios.groupby('fecha')['precio'].min().tail(30).mean()
+        with col2:
+            st.subheader("📈 Histórico")
+            fig = go.Figure()
+            for id_prod, df_plot in historiales.items():
+                tienda_nombre = next(i['Tienda'] for i in datos_ofertas if i['id'] == id_prod)
+                fig.add_trace(go.Scatter(x=df_plot['fecha'], y=df_plot['precio'], name=tienda_nombre, mode='lines+markers'))
+            fig.update_layout(margin=dict(l=0,r=0,t=0,b=0), hovermode="x unified")
+            st.plotly_chart(fig, use_container_width=True)
     else:
-        suelo_30d = 0
-
-    df_precios = pd.DataFrame(datos_tabla).sort_values("Precio")
-    
-    col_precios, col_grafica = st.columns([1.5, 2.5])
-
-    with col_precios:
-        st.subheader("💰 Ofertas")
-        for _, row in df_precios.iterrows():
-            pct_ahorro = int(((suelo_30d - row['Precio']) / suelo_30d) * 100) if suelo_30d > 0 else 0
-            bg_m, txt_m, texto_m = obtener_estilo_metal(pct_ahorro)
-            
-            with st.container(border=True):
-                c1, c2 = st.columns([2, 1])
-                c1.markdown(f"**{row['Tienda']}**")
-                c1.caption(f"Status: {row['Disponibilidad']}")
-                c2.markdown(f"### ${row['Precio']:,.0f}")
-                if bg_m:
-                    st.markdown(f'<span style="background:{bg_m}; color:{txt_m}; padding:2px 5px; border-radius:4px; font-size:10px;">{texto_m}</span>', unsafe_allow_html=True)
-                st.link_button("Ir a tienda", row['URL'], use_container_width=True)
-
-    with col_grafica:
-        st.subheader("📈 Historial")
-        fig = go.Figure()
-        for tienda, df_h in historiales_por_id.items():
-            nombre_t = next(item['Tienda'] for item in datos_tabla if item['id_producto'] == tienda)
-            fig.add_trace(go.Scatter(x=df_h['fecha'], y=df_h['precio'], name=nombre_t))
-        fig.update_layout(height=450, margin=dict(l=0,r=0,b=0,t=0))
-        st.plotly_chart(fig, use_container_width=True)
+        st.error("No se encontraron datos para este producto.")
 
 # --- VISTA 1: GALERÍA PRINCIPAL ---
 else:
     st.title("🐾 Oferta Pet Chile")
-    query = st.text_input("Busca tu producto (marca, nombre o SKU)...", placeholder="Ej: Leonardo, Cat it...").strip()
+    search = st.text_input("Busca por marca o producto...", placeholder="Ej: Brit Care, Leonardo...").strip()
 
-    # Si no hay búsqueda, traemos los destacados o los primeros 20
-    if not query:
-        res = supabase.table("SKUs_unicos").select("*").limit(20).execute()
+    # Carga con búsqueda o inicial (primeros 20)
+    if search:
+        res = supabase.table("SKUs_unicos").select("*").ilike("nombre_oficial", f"%{search}%").limit(20).execute()
     else:
-        q = f"%{query}%"
-        res = supabase.table("SKUs_unicos").select("*").or_(f"nombre_oficial.ilike.{q},mi_sku.ilike.{q}").execute()
+        res = supabase.table("SKUs_unicos").select("*").limit(20).execute()
 
     if res.data:
-        df_maestro = pd.DataFrame(res.data)
-        
-        # Grid de 5 columnas
+        df_items = pd.DataFrame(res.data)
         cols = st.columns(5)
-        for idx, row in df_maestro.iterrows():
+        
+        for idx, row in df_items.iterrows():
             with cols[idx % 5]:
-                # Aseguramos que la imagen tenga un fallback si es nula
-                img_url = row.get('imagen_url_maestra') or "https://via.placeholder.com/150?text=No+Image"
-                nombre = row.get('nombre_oficial', 'Producto sin nombre')
+                # 1. Calcular Ahorro y Badge
+                ahorro = calcular_ahorro_galeria(row['mi_sku'])
+                bg, txt_color, txt_label = obtener_estilo_metal(ahorro)
+                badge_html = f'<div class="badge-galeria" style="background:{bg}; color:{txt_color}; border:1px solid rgba(0,0,0,0.1);">{txt_label}</div>' if bg else ""
                 
-                # Renderizado de la tarjeta HTML
+                # 2. Manejo de Imagen con Fallback y Referrer Policy
+                img_url = row.get('imagen_url_maestra')
+                if not img_url:
+                    img_html = '<div style="color:#ccc; font-size:10px;">Imagen no disponible</div>'
+                else:
+                    img_html = f'<img src="{img_url}" referrerpolicy="no-referrer" loading="lazy">'
+
+                # 3. Renderizado de Tarjeta
                 st.markdown(f"""
                     <div class="product-card">
-                        <img src="{img_url}">
-                        <div class="product-title">{nombre}</div>
+                        <div class="img-container">
+                            {img_html}
+                        </div>
+                        <div class="product-title">{row['nombre_oficial']}</div>
+                        <div style="color:#1abc9c; font-weight:700; font-size:12px; margin-bottom:8px;">VER COMPARATIVA</div>
+                        {badge_html}
                     </div>
                 """, unsafe_allow_html=True)
                 
-                # Botón de Streamlit (fuera del HTML para que funcione)
-                if st.button("Ver comparativa", key=f"btn_{row['mi_sku']}", use_container_width=True):
+                # Botón de acción
+                if st.button("Explorar", key=f"btn_{row['mi_sku']}", use_container_width=True):
                     st.query_params.sku = row['mi_sku']
                     st.rerun()
     else:
-        st.info("No se encontraron productos con esa búsqueda.")
+        st.info("No encontramos productos que coincidan con tu búsqueda.")
