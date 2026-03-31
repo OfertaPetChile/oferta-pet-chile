@@ -176,7 +176,7 @@ if selected_sku:
                     m_top_contenido = "0px"   # Posición estándar arriba
                 else:
                     h_card = "52px"
-                    m_top_contenido = "-6px"  # ELEVAMOS los datos solo en tarjetas simples
+                    m_top_contenido = "-10px"  # ELEVAMOS los datos solo en tarjetas simples
 
                 # 2. CAPA DE FONDO (Z-INDEX 0)
                 color_t = mapa_colores.get(tienda, "#eee")
