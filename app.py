@@ -203,6 +203,19 @@ if selected_sku:
                     font-size: 12px !important;
                     line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
+                
+                /* --- ESTILO DE LA LISTA DESPLEGABLE (OPCIONES) --- */
+                /* Ajustamos el tamaño de cada ítem de la lista */
+                [data-testid="stVirtualBlock"] div[role="option"] {
+                    font-size: 12px !important;
+                    padding-top: 4px !important;
+                    padding-bottom: 4px !important;
+                    min-height: 25px !important;
+                }
+                /* Asegura que el contenedor de la lista no tenga márgenes excesivos */
+                ul[role="listbox"] li {
+                    font-size: 12px !important;
+                }
             </style>
         """, unsafe_allow_html=True)
        
