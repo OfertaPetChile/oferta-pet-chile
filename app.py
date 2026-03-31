@@ -170,58 +170,64 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Selector de Variedad (Se renderiza PRIMERO)
+                # Contenedor para agrupar visualmente selector + card
+                con = st.container()
+                
                 if tiene_opciones:
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                    opcion_elegida = st.selectbox(
+                    opcion_elegida = con.selectbox(
                         f"Variedad en {tienda}", 
                         opciones, 
                         format_func=fmt, 
                         key=f"sel_{tienda}_{selected_sku}",
                         label_visibility="collapsed"
                     )
+                    h_final = "95px" # Altura doble
+                    m_top = "-42px"  # Sube la card para "abrazar" el select
+                    p_top = "35px"  # Empuja el texto de la tienda hacia abajo
                 else:
                     opcion_elegida = opciones[0]
+                    h_final = "54px" # Altura simple
+                    m_top = "0px"
+                    p_top = "0px"
 
-                # 2. Preparación de datos para la opción seleccionada
+                # Variables de datos
                 esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
                 precio_cl = f"$ {opcion_elegida['Precio']:,.0f}".replace(",", ".")
                 color_tienda = mapa_colores.get(tienda, "#eee")
+                opacidad_info = "0.5" if esta_agotado else "1.0"
                 
-                # --- AJUSTES DINÁMICOS DE ALTURA ---
-                # Si tiene opciones, la card es más alta y empujamos el contenido hacia abajo
-                h_card = "95px" if tiene_opciones else "56px"
-                m_top_card = "-48px" if tiene_opciones else "0px"
-                padding_internos = "40px" if tiene_opciones else "0px"
-
                 bg_card = '#f0fff4' if (i == 0 and not esta_agotado) else ('#fafafa' if esta_agotado else 'white')
                 border_card = '#2ecc71' if (i == 0 and not esta_agotado) else '#eee'
                 btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+                btn_txt = "Agotado" if esta_agotado else "Ir al sitio"
                 p_events = "none" if esta_agotado else "auto"
+                badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
 
-                # 3. HTML ÚNICO (Sin concatenaciones para evitar código expuesto)
-                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;margin-top:2px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
-                
-                html_final = f"""
-                <div style="background:{bg_card}; border:1px solid {border_card}; border-radius:8px; padding:8px 12px; margin-top:{m_top_card}; margin-bottom:12px; height:{h_card}; width:100%; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02); position:relative;">
-                    <div style="display:flex; align-items:center; width:150px; margin-top:{padding_internos};">
-                        <div style="width:13px; height:13px; border-radius:50%; background-color:{color_tienda}; margin-right:10px; flex-shrink:0;"></div>
-                        <div style="display:flex; flex-direction:column; opacity:{'0.5' if esta_agotado else '1.0'};">
-                            <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
-                            {badge}
-                        </div>
-                    </div>
-                    <div style="flex-grow:1; text-align:right; margin-right:15px; margin-top:{padding_internos}; opacity:{'0.5' if esta_agotado else '1.0'};">
-                        <span style="font-size:15px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
-                    </div>
-                    <div style="margin-top:{padding_internos};">
-                        <a href="{opcion_elegida['URL']}" target="_blank" style="background-color:{btn_bg}; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; pointer-events:{p_events}; opacity:{'0.5' if esta_agotado else '1.0'};">
-                            {"Agotado" if esta_agotado else "Ir al sitio"}
-                        </a>
-                    </div>
-                </div>
-                """
-                st.markdown(html_final, unsafe_allow_html=True)
+                # Renderizado con tu formato solicitado
+                html_card = (
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                    f'background-color:{bg_card};padding:8px 12px;border-radius:8px;'
+                    f'border:1px solid {border_card};margin-top:{m_top};margin-bottom:10px;height:{h_final};width:100%;'
+                    f'box-shadow:0 2px 4px rgba(0,0,0,0.02);position:relative;">'
+                    f'<div style="display:flex;align-items:center;width:150px;flex-shrink:0;margin-top:{p_top};">'
+                    f'<div style="width:13px;height:13px;border-radius:50%;background-color:{color_tienda};'
+                    f'margin-right:10px;flex-shrink:0;"></div>'
+                    f'<div style="display:flex;flex-direction:column;opacity:{opacidad_info};">'
+                    f'<div style="font-size:13px;font-weight:800;color:#333;line-height:1.1;">{tienda}</div>'
+                    f'{badge}'
+                    f'</div></div>'
+                    f'<div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opacidad_info};margin-top:{p_top};">'
+                    f'<span style="font-size:15px;font-weight:800;color:#2c3e50;">{precio_cl}</span>'
+                    f'</div>'
+                    f'<div style="margin-top:{p_top};">'
+                    f'<a href="{opcion_elegida["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
+                    f'padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
+                    f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
+                    f'</div>'
+                    f'</div>'
+                )
+                con.markdown(html_card, unsafe_allow_html=True)
 
             with c_check:
                 check_inicial = (not esta_agotado and contador_grafica < 5)
@@ -230,7 +236,7 @@ if selected_sku:
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
                     "id_producto": opcion_elegida['id_producto']
                 }
-                
+               
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
