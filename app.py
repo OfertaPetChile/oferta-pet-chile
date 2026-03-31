@@ -275,7 +275,7 @@ if selected_sku:
 
                 # 4. DESPLEGABLE
                 if tiene_opciones:
-                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}", replace(",",".")
+                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}".replace(",",".")
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", opciones, format_func=fmt, 
                         key=op_id, label_visibility="collapsed"
