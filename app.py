@@ -204,17 +204,24 @@ if selected_sku:
                     line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
                 
-                /* --- ESTILO DE LA LISTA DESPLEGABLE (OPCIONES) --- */
-                /* Ajustamos el tamaño de cada ítem de la lista */
-                [data-testid="stVirtualBlock"] div[role="option"] {
-                    font-size: 10px !important;
-                    padding-top: 4px !important;
-                    padding-bottom: 4px !important;
-                    min-height: 20px !important;
+                /* 1. ESTILO PARA LA LETRA DEL SELECTOR (LO QUE SE VE EN LA CARD) */
+                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
+                    font-size: 11px !important;
+                    line-height: 1 !important;
                 }
-                /* Asegura que el contenedor de la lista no tenga márgenes excesivos */
-                ul[role="listbox"] li {
-                    font-size: 10px !important;
+
+                /* 2. ESTILO PARA LA LISTA QUE SE ABRE (SELECTOR GLOBAL) */
+                /* Atacamos directamente los elementos de la lista por su rol de accesibilidad */
+                [role="listbox"] li, [role="listbox"] div {
+                    font-size: 12px !important;
+                    padding-top: 2px !important;
+                    padding-bottom: 2px !important;
+                }
+
+                /* 3. AJUSTE DE ALTURA DE CADA OPCIÓN EN LA LISTA */
+                [data-baseweb="popover"] [role="option"] {
+                    min-height: 25px !important;
+                    line-height: 1.2 !important;
                 }
             </style>
         """, unsafe_allow_html=True)
