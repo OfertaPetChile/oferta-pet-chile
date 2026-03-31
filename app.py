@@ -160,7 +160,7 @@ if selected_sku:
     seleccion_tiendas = {}
     contador_grafica = 0
 
-            with col_precios:
+    with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
