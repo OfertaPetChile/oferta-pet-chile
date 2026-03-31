@@ -164,24 +164,26 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         st.markdown("""
             <style>
-                /* 1. El contenedor padre mantiene su espacio para evitar solapamiento */
+                /* Contenedor padre: mantiene espacio para evitar solapamientos */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                     margin-top: 0px !important; 
                     margin-bottom: 0px !important;
-                    padding-bottom: 10px !important; /* Espacio de seguridad */
                     display: flex;
                     justify-content: center;
+                    /* Aseguramos que el contenedor no colapse */
+                    min-height: 45px !important; 
                 }
 
-                /* 2. Succionamos el widget solo desde su margen superior interno */
+                /* El widget: Ajustamos el margin-top para BAJARLO */
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: -32px !important; /* Aquí es donde sube sin mover la card */
+                    /* REDUCIMOS el margen negativo de -32px a -18px para que baje */
+                    margin-top: -18px !important; 
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
 
-                /* 3. Estilo de píldora y altura */
+                /* Estilo píldora y altura slim */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
                     min-height: 30px !important;
