@@ -162,7 +162,7 @@ if selected_sku:
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
-        for i, row in df_ord.iterrows():
+        for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
 
