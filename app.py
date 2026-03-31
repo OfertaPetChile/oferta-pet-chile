@@ -161,45 +161,7 @@ if selected_sku:
     contador_grafica = 0
 
     with col_precios:
-    st.markdown("#### 💰 Ofertas Actuales")
-        <style>
-            [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
-                margin-top: -28px !important; 
-                margin-bottom: 2px !important;
-                display: flex;
-                justify-content: center;
-            }
-            div[data-testid="stSelectbox"] {
-                width: 94% !important; 
-                margin: 0 auto !important;
-            }
-            div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-                border-radius: 20px !important; 
-                min-height: 32px !important;
-                border: 1px solid #ddd !important;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-
-    for i, row in df_resumen.iterrows():
-        # ... (código de columnas y fondo de tarjeta igual) ...
-        
-        with c_card:
-            # ... (código de info_html con el margin-top: -8px que ya te funcionó) ...
-
-            # 2. EL SELECTOR queda ahora así de simple:
-            if tiene_opciones:
-                fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
-                opcion_elegida = st.selectbox(
-                    f"Variedad en {tienda}", 
-                    opciones, 
-                    format_func=fmt, 
-                    key=op_id, 
-                    label_visibility="collapsed"
-                )
-            else:
-                opcion_elegida = opciones[0]
-       
+        st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
@@ -208,11 +170,17 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. DEFINICIÓN DE ALTURAS
-                h_total = "105px" if tiene_opciones else "52px"
-                m_top_contenido = "-8px" # Mantenemos tu centrado que ya funcionaba
+                # 1. DEFINICIÓN DE ALTURAS SEGÚN ESQUEMA [Ref: image_039324.png]
+                if tiene_opciones:
+                    h_total = "105px"
+                    # En tarjeta doble, usamos un margen negativo sutil para subir el bloque superior
+                    m_top_contenido = "-8px" 
+                else:
+                    h_total = "52px"
+                    # En tarjeta simple, subimos más para compensar el espacio del contenedor
+                    m_top_contenido = "-8px"
 
-                # 2. FONDO DE LA TARJETA
+                # 2. FONDO DE LA TARJETA (Z-INDEX 0)
                 color_t = mapa_colores.get(tienda, "#eee")
                 esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_init)
@@ -226,7 +194,7 @@ if selected_sku:
                     unsafe_allow_html=True
                 )
 
-                # 3. BLOQUE DE INFORMACIÓN
+                # 3. BLOQUE DE INFORMACIÓN (Centrado en la franja superior de 52px)
                 op_id = f"sel_{tienda}_{selected_sku}"
                 opcion_actual = st.session_state.get(op_id, opciones[0]) if tiene_opciones else opciones[0]
                 
@@ -234,6 +202,7 @@ if selected_sku:
                 opac = "0.5" if "Agotado" in str(opcion_actual['Disponibilidad']).capitalize() else "1.0"
                 btn_bg = "#ccc" if opac == "0.5" else "#1abc9c"
 
+                # m_top_contenido es la clave para el centrado
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
                     f'padding:0 12px; height:52px; position:relative; z-index:2; margin-top:{m_top_contenido};">'
@@ -252,15 +221,15 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. DESPLEGABLE (Ahora limpio, el CSS de arriba hace el trabajo)
+                # 4. DESPLEGABLE (SUBIDA REAL)
                 if tiene_opciones:
-                    fmt = lambda x: f"Var: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                    fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", opciones, format_func=fmt, 
                         key=op_id, label_visibility="collapsed"
                     )
                 else:
-                    opcion_elegida = opciones[0]                    
+                    opcion_elegida = opciones[0]                       
                    
             with c_check:
                 # Alineación del checkbox para que coincida con el centro de los primeros 52px
