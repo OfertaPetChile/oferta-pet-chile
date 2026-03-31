@@ -159,7 +159,7 @@ if selected_sku:
     col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
     seleccion_tiendas = {}
     contador_grafica = 0
-
+   
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_resumen.iterrows():
@@ -179,32 +179,53 @@ if selected_sku:
                         key=f"sel_{tienda}_{selected_sku}",
                         label_visibility="collapsed"
                     )
-                    h_f, m_t, p_t = "92px", "-46px", "38px"
+                    # Ajustes para "Doble Altura" e integración
+                    h_f, m_t, p_t = "94px", "-44px", "36px"
                 else:
                     opcion_elegida = opciones[0]
                     h_f, m_t, p_t = "54px", "0px", "0px"
 
-                # Variables de datos
+                # Datos de la opción
                 esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
                 precio_cl = f"$ {opcion_elegida['Precio']:,.0f}".replace(",", ".")
-                color_tienda = mapa_colores.get(tienda, "#eee")
-                opacidad = "0.5" if esta_agotado else "1.0"
-                bg_c = '#f0fff4' if (i == 0 and not esta_agotado) else ('#fafafa' if esta_agotado else 'white')
-                brd_c = '#2ecc71' if (i == 0 and not esta_agotado) else '#eee'
-                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                p_ev = "none" if esta_agotado else "auto"
-                badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
-
-                # RENDERIZADO EN UNA SOLA LÍNEA (ESTO EVITA EL CÓDIGO EXPUESTO)
-                html_final = f'<div style="display:flex;justify-content:space-between;align-items:center;background-color:{bg_c};padding:8px 12px;border-radius:8px;border:1px solid {brd_c};margin-top:{m_t};margin-bottom:10px;height:{h_f};width:100%;box-shadow:0 2px 4px rgba(0,0,0,0.02);"><div style="display:flex;align-items:center;width:150px;flex-shrink:0;margin-top:{p_t};"><div style="width:13px;height:13px;border-radius:50%;background-color:{color_tienda};margin-right:10px;flex-shrink:0;"></div><div style="display:flex;flex-direction:column;opacity:{opacidad};"><div style="font-size:13px;font-weight:800;color:#333;line-height:1.1;">{tienda}</div>{badge}</div></div><div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opacidad};margin-top:{p_t};"><span style="font-size:15px;font-weight:800;color:#2c3e50;">{precio_cl}</span></div><div style="margin-top:{p_t};"><a href="{opcion_elegida["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;white-space:nowrap;pointer-events:{p_ev};opacity:{opacidad};">{"Agotado" if esta_agotado else "Ir al sitio"}</a></div></div>'
+                color_t = mapa_colores.get(tienda, "#eee")
+                opac = "0.5" if esta_agotado else "1.0"
                 
-                st.markdown(html_final, unsafe_allow_html=True)
+                # Colores de la card
+                es_top = (i == 0 and not esta_agotado)
+                bg_c = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
+                brd_c = '#2ecc71' if es_top else '#eee'
+                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+
+                # HTML en una sola línea colapsada para evitar errores de visualización
+                html_card = (
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;'
+                    f'background-color:{bg_c};padding:8px 12px;border-radius:8px;border:1px solid {brd_c};'
+                    f'margin-top:{m_t};margin-bottom:10px;height:{h_f};width:100%;box-shadow:0 2px 4px rgba(0,0,0,0.02);">'
+                    f'<div style="display:flex;align-items:center;width:150px;flex-shrink:0;margin-top:{p_t};">'
+                    f'<div style="width:13px;height:13px;border-radius:50%;background-color:{color_t};margin-right:10px;flex-shrink:0;"></div>'
+                    f'<div style="display:flex;flex-direction:column;opacity:{opac};">'
+                    f'<div style="font-size:13px;font-weight:800;color:#333;line-height:1.1;">{tienda}</div>'
+                    f'{"<small style='color:#e74c3c;font-weight:bold;'>AGOTADO</small>" if esta_agotado else ""}'
+                    f'</div></div>'
+                    f'<div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opac};margin-top:{p_t};">'
+                    f'<span style="font-size:15px;font-weight:800;color:#2c3e50;">{precio_cl}</span>'
+                    f'</div>'
+                    f'<div style="margin-top:{p_t};">'
+                    f'<a href="{opcion_elegida["URL"]}" target="_blank" style="background-color:{btn_bg};color:white;'
+                    f'padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
+                    f'white-space:nowrap;pointer-events:{"none" if esta_agotado else "auto"};opacity:{opac};">'
+                    f'{"Agotado" if esta_agotado else "Ir al sitio"}</a>'
+                    f'</div></div>'
+                ).replace("\n", "") # CRÍTICO: Elimina saltos de línea para que no se escape el código
+
+                st.markdown(html_card, unsafe_allow_html=True)
 
             with c_check:
-                check_inicial = (not esta_agotado and contador_grafica < 5)
-                if check_inicial: contador_grafica += 1
+                check_val = (not esta_agotado and contador_grafica < 5)
+                if check_val: contador_grafica += 1
                 seleccion_tiendas[tienda] = {
-                    "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
+                    "active": st.checkbox("", value=check_val, key=f"ch_{tienda}_{selected_sku}"),
                     "id_producto": opcion_elegida['id_producto']
                 }
                
