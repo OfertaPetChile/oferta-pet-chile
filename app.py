@@ -221,39 +221,15 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
+                # 4. DESPLEGABLE (SUBIDA REAL)
                 if tiene_opciones:
-                    # Usamos un contenedor de Streamlit para aislar el widget
-                    # e inyectamos CSS que fuerce al contenedor del selectbox a subir
-                    st.markdown(
-                        f"""
-                        <style>
-                        /* Buscamos el div que contiene específicamente este selectbox por su key */
-                        div[data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"] div[data-testid="stMarkdownContainer"] p:contains("{tienda}")) {{
-                            margin-top: -35px !important;
-                        }}
-                        /* Opción más directa: target al div que sigue al markdown de la info */
-                        div[key="{op_id}"] {{
-                            margin-top: -32px !important;
-                            position: relative;
-                            z-index: 5;
-                        }}
-                        </style>
-                        """, 
-                        unsafe_allow_html=True
-                    )
-
-                    # Importante: El selectbox DEBE ir inmediatamente después del HTML de la info
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
-                        f"Variedad en {tienda}", 
-                        opciones, 
-                        format_func=fmt, 
-                        key=op_id, 
-                        label_visibility="collapsed"
+                        f"Variedad en {tienda}", opciones, format_func=fmt, 
+                        key=op_id, label_visibility="collapsed"
                     )
                 else:
-                    opcion_elegida = opciones[0]
+                    opcion_elegida = opciones[0]                       
                    
             with c_check:
                 # Alineación del checkbox para que coincida con el centro de los primeros 52px
