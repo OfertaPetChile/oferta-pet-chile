@@ -174,7 +174,7 @@ if selected_sku:
 
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: 1 px !important; 
+                    margin-top: 1px !important;  /* CORREGIDO: Tenías '1 px' con espacio */
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
@@ -182,44 +182,40 @@ if selected_sku:
                 /* --- AJUSTE DE ALTURA Y CENTRADO DE TEXTO --- */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
-                    
-                    /* 1. ALTURA: Achica este valor para que el desplegable sea más delgado */
                     height: 35px !important; 
                     min-height: 35px !important; 
-
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
-                    
-                    /* 2. CENTRADO VERTICAL: 
-                       display flex y align-items center fuerzan al texto al medio */
-                       display: flex !important;
-                       align-items: center !important;
-                       padding-top: 0px !important;
-                       padding-bottom: 0px !important;
-                   }
+                    display: flex !important;
+                    align-items: center !important;
+                    padding-top: 0px !important;
+                    padding-bottom: 0px !important;
+                }
 
-                /* Tamaño de letra */
+                /* Tamaño de letra seleccionado */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] div {
                     font-size: 12px !important;
-                    line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
+                    line-height: 1 !important;
                 }
                 
-                /* 3. TAMAÑOS LETRA DESPLEGABLE
-                /* Seleccionamos por el atributo de datos que usa la librería BaseWeb */
+                /* 3. TAMAÑOS LETRA DESPLEGABLE */
+                /* CORREGIDO: El comentario de arriba no estaba cerrado con '*/' */
+                
                 [data-baseweb="menu"] [role="option"] div,
                 [data-baseweb="menu"] [role="option"] span,
                 [data-baseweb="popover"] li {
-                    font-size: 12px !important; /* Probamos con 10px para notar el cambio */
+                    font-size: 12px !important; 
                     line-height: 1.1 !important;
                 }
 
-                /* Ajustamos la altura de las filas en la lista para que no queden tan separadas */
+                /* Ajustamos la altura de las filas en la lista */
                 [data-baseweb="menu"] [role="option"] {
                     padding-top: 2px !important;
                     padding-bottom: 2px !important;
                     min-height: 22px !important;
-            </style>
-        """, unsafe_allow_html=True)
+                } /* CORREGIDO: Faltaba esta llave */
+
+            </style> """, unsafe_allow_html=True)
        
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
