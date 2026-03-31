@@ -204,12 +204,12 @@ if selected_sku:
                     line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
                 
-                /* 3. ESTO ES LO NUEVO: Atacamos la capa flotante global */
+                /* 3. TAMAÑOS LETRA DESPLEGABLE
                 /* Seleccionamos por el atributo de datos que usa la librería BaseWeb */
                 [data-baseweb="menu"] [role="option"] div,
                 [data-baseweb="menu"] [role="option"] span,
                 [data-baseweb="popover"] li {
-                    font-size: 10px !important; /* Probamos con 10px para notar el cambio */
+                    font-size: 12px !important; /* Probamos con 10px para notar el cambio */
                     line-height: 1.1 !important;
                 }
 
