@@ -160,7 +160,7 @@ if selected_sku:
     seleccion_tiendas = {}
     contador_grafica = 0
    
-    with col_precios:
+   with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
@@ -170,13 +170,13 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Configuración de alturas
+                # 1. Ajuste de alturas y márgenes negativos
                 if tiene_opciones:
-                    h_total, m_top_info = "100px", "-25px"
+                    h_total, m_top_info = "100px", "-42px" # m_top_info más agresivo para subir el contenido
                 else:
                     h_total, m_top_info = "56px", "0px"
 
-                # 2. Renderizado del Fondo (Capa trasera)
+                # 2. Renderizado del Fondo
                 color_t = mapa_colores.get(tienda, "#eee")
                 esta_agotado_inicial = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_inicial)
@@ -190,9 +190,10 @@ if selected_sku:
                     unsafe_allow_html=True
                 )
 
-                # 3. Selector (Capa media - Solo si hay opciones)
+                # 3. Selector (Capa media)
                 if tiene_opciones:
-                    st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
+                    # Reducimos este espacio para que el select no baje tanto
+                    st.markdown('<div style="height:6px;"></div>', unsafe_allow_html=True)
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", opciones, format_func=fmt, 
@@ -207,7 +208,7 @@ if selected_sku:
                 opac = "0.5" if esta_agotado else "1.0"
                 btn_bg = "#ccc" if esta_agotado else "#1abc9c"
                 
-                # m_top_info sube el contenido para que entre en la card
+                # El margin-top negativo de -42px succiona el contenido hacia arriba
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
                     f'padding:0 12px; height:54px; position:relative; z-index:2; margin-top:{m_top_info};">'
@@ -225,7 +226,7 @@ if selected_sku:
                     f'</div>'
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
-
+               
             with c_check:
                 check_val = (not esta_agotado and contador_grafica < 5)
                 if check_val: contador_grafica += 1
