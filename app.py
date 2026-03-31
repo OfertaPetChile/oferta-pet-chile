@@ -176,7 +176,7 @@ if selected_sku:
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
                     margin-top: 1px !important; 
-                    margin-bottom: 5px !important;
+                    margin-bottom: 3px !important;
                     z-index: 10;
                 }
 
