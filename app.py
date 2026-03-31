@@ -162,24 +162,25 @@ if selected_sku:
 
     with col_precios:
         st.markdown("#### 💰 Ofertas Actuales")
-
-        # --- ESTE ES EL BLOQUE QUE REEMPLAZA LOS PARCHES ---
-        st.markdown("""
             <style>
-                /* 1. Succionamos el contenedor del selectbox hacia arriba */
+                /* 1. El contenedor padre mantiene su espacio para evitar solapamiento */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
-                    margin-top: -30px !important; 
+                    margin-top: 0px !important; 
                     margin-bottom: 0px !important;
+                    padding-bottom: 10px !important; /* Espacio de seguridad */
                     display: flex;
                     justify-content: center;
                 }
-                /* 2. Lo hacemos más angosto y centrado */
+
+                /* 2. Succionamos el widget solo desde su margen superior interno */
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin: 0 auto !important;
-                    padding-top: 0px !important;
+                    margin-top: -32px !important; /* Aquí es donde sube sin mover la card */
+                    margin-bottom: 5px !important;
+                    z-index: 10;
                 }
-                /* 3. Bordes redondeados tipo píldora y altura slim */
+
+                /* 3. Estilo de píldora y altura */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
                     min-height: 30px !important;
@@ -188,7 +189,7 @@ if selected_sku:
                 }
             </style>
         """, unsafe_allow_html=True)
-
+       
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
