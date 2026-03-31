@@ -170,19 +170,21 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Definición de Altura Diferenciada
-                # Doble altura si hay opciones, altura normal si no.
-                h_card = "105px" if tiene_opciones else "56px"
-                
-                # 2. Datos de la tienda
-                # (Usamos la primera opción por defecto para renderizar la card inicial)
-                esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
+                # 1. PARAMETRIZACIÓN DIFERENCIADA
+                if tiene_opciones:
+                    h_card = "105px"
+                    m_top_contenido = "0px"   # Posición estándar arriba
+                else:
+                    h_card = "52px"
+                    m_top_contenido = "-6px"  # ELEVAMOS los datos solo en tarjetas simples
+
+                # 2. CAPA DE FONDO (Z-INDEX 0)
                 color_t = mapa_colores.get(tienda, "#eee")
+                esta_agotado_init = "Agotado" in str(opciones[0]['Disponibilidad']).capitalize()
                 es_top = (i == 0 and not esta_agotado_init)
                 bg_c = '#f0fff4' if es_top else ('#fafafa' if esta_agotado_init else 'white')
                 brd_c = '#2ecc71' if es_top else '#eee'
 
-                # 3. Renderizado de la TARJETA DE FONDO (Base visual)
                 st.markdown(
                     f'<div style="background-color:{bg_c}; border:1px solid {brd_c}; '
                     f'border-radius:8px; height:{h_card}; width:100%; position:absolute; '
@@ -190,20 +192,8 @@ if selected_sku:
                     unsafe_allow_html=True
                 )
 
-                # 4. CONTENIDO SUPERIOR (Tienda, Precio, Botón)
-                # Este bloque siempre va arriba
-                res_opcion = st.container() # Contenedor para que el selectbox no empuje esto
-                
-                # Determinamos qué opción mostrar (la del select o la única)
-                # Nota: El selectbox debe ir DESPUÉS en el código para que aparezca ABAJO
-                if tiene_opciones:
-                    # Renderizamos el selectbox abajo
-                    # Pero primero necesitamos capturar la opción elegida
-                    # Para evitar el salto visual, el selectbox se pone en un contenedor dedicado abajo
-                    pass 
-
-                # 5. Renderizado del bloque de información (Siempre arriba)
-                # Usamos una clave temporal para la opción si hay selectbox
+                # 3. CAPA DE INFORMACIÓN (Tienda, Precio, Botón)
+                # Obtenemos la opción (de session_state para que el select sea reactivo)
                 op_id = f"sel_{tienda}_{selected_sku}"
                 opcion_actual = st.session_state.get(op_id, opciones[0]) if tiene_opciones else opciones[0]
                 
@@ -214,7 +204,7 @@ if selected_sku:
 
                 info_html = (
                     f'<div style="display:flex; justify-content:space-between; align-items:center; '
-                    f'padding:0 12px; height:54px; position:relative; z-index:2;">'
+                    f'padding:0 12px; height:54px; position:relative; z-index:2; margin-top:{m_top_contenido};">'
                     f'<div style="display:flex; align-items:center; width:150px;">'
                     f'<div style="width:12px; height:12px; border-radius:50%; background-color:{color_t}; margin-right:10px;"></div>'
                     f'<div><div style="opacity:{opac}; font-size:13px; font-weight:800; color:#333;">{tienda}</div>{badge}</div>'
@@ -230,9 +220,9 @@ if selected_sku:
                 )
                 st.markdown(info_html, unsafe_allow_html=True)
 
-                # 6. DESPLEGABLE (En la mitad inferior)
+                # 4. CAPA DE SELECTBOX (Solo para tarjetas dobles)
                 if tiene_opciones:
-                    # Ajuste de posición para que el select quede centrado en la parte inferior de la card
+                    # Este pequeño espacio empuja el select hacia la mitad inferior exacta
                     st.markdown('<div style="height:2px;"></div>', unsafe_allow_html=True)
                     fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
@@ -243,6 +233,7 @@ if selected_sku:
                     opcion_elegida = opciones[0]
 
             with c_check:
+                # El checkbox se mantiene alineado a la parte superior de la card
                 check_val = (not esta_agotado_init and contador_grafica < 5)
                 if check_val: contador_grafica += 1
                 seleccion_tiendas[tienda] = {
