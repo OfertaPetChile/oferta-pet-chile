@@ -164,17 +164,14 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         st.markdown("""
             <style>
-                /* Contenedor padre: mantiene espacio para evitar solapamientos */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                     margin-top: 0px !important; 
                     margin-bottom: 0px !important;
                     display: flex;
                     justify-content: center;
-                    /* Aseguramos que el contenedor no colapse */
-                    min-height: 40px !important; 
+                    min-height: 45px !important; 
                 }
 
-                /* El widget: Ajustamos el margin-top para BAJARLO */
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
                     margin-top: -3px !important; 
@@ -182,12 +179,18 @@ if selected_sku:
                     z-index: 10;
                 }
 
-                /* Estilo píldora y altura slim */
+                /* --- AQUÍ SE CAMBIA EL TAMAÑO DE LETRA --- */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
                     min-height: 30px !important;
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
+                    font-size: 11px !important; /* <--- Ajusta este valor para achicar la letra */
+                }
+
+                /* También ajustamos la letra de las opciones cuando se despliegan */
+                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
+                    font-size: 11px !important;
                 }
             </style>
         """, unsafe_allow_html=True)
