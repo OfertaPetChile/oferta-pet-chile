@@ -174,23 +174,34 @@ if selected_sku:
 
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: -3px !important; 
+                    margin-top: -18px !important; 
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
 
-                /* --- AQUÍ SE CAMBIA EL TAMAÑO DE LETRA --- */
+                /* --- AJUSTE DE ALTURA Y CENTRADO DE TEXTO --- */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
-                    min-height: 30px !important;
+                    
+                    /* 1. ALTURA: Achica este valor para que el desplegable sea más delgado */
+                    height: 28px !important; 
+                    min-height: 28px !important; 
+
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
-                    font-size: 12px !important; /* 
+                    
+                    /* 2. CENTRADO VERTICAL: 
+                       display flex y align-items center fuerzan al texto al medio */
+                    display: flex !important;
+                    align-items: center !important;
+                    padding-top: 0px !important;
+                    padding-bottom: 0px !important;
                 }
 
-                /* También ajustamos la letra de las opciones cuando se despliegan */
+                /* Tamaño de letra */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] div {
-                    font-size: 10px !important;
+                    font-size: 11px !important;
+                    line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
             </style>
         """, unsafe_allow_html=True)
