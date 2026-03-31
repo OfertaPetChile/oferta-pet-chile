@@ -192,11 +192,11 @@ if selected_sku:
                     
                     /* 2. CENTRADO VERTICAL: 
                        display flex y align-items center fuerzan al texto al medio */
-                    display: flex !important;
-                    align-items: center !important;
-                    padding-top: 0px !important;
-                    padding-bottom: 0px !important;
-                }
+                       display: flex !important;
+                       align-items: center !important;
+                       padding-top: 0px !important;
+                       padding-bottom: 0px !important;
+                   }
 
                 /* Tamaño de letra */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] div {
@@ -204,25 +204,20 @@ if selected_sku:
                     line-height: 1 !important; /* Ayuda a que no haya espacio extra arriba/abajo */
                 }
                 
-                /* 1. ESTILO PARA LA LETRA DEL SELECTOR (LO QUE SE VE EN LA CARD) */
-                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
-                    font-size: 11px !important;
-                    line-height: 1 !important;
+                /* 3. ESTO ES LO NUEVO: Atacamos la capa flotante global */
+                /* Seleccionamos por el atributo de datos que usa la librería BaseWeb */
+                [data-baseweb="menu"] [role="option"] div,
+                [data-baseweb="menu"] [role="option"] span,
+                [data-baseweb="popover"] li {
+                    font-size: 10px !important; /* Probamos con 10px para notar el cambio */
+                    line-height: 1.1 !important;
                 }
 
-                /* 2. ESTILO PARA LA LISTA QUE SE ABRE (SELECTOR GLOBAL) */
-                /* Atacamos directamente los elementos de la lista por su rol de accesibilidad */
-                [role="listbox"] li, [role="listbox"] div {
-                    font-size: 12px !important;
+                /* Ajustamos la altura de las filas en la lista para que no queden tan separadas */
+                [data-baseweb="menu"] [role="option"] {
                     padding-top: 2px !important;
                     padding-bottom: 2px !important;
-                }
-
-                /* 3. AJUSTE DE ALTURA DE CADA OPCIÓN EN LA LISTA */
-                [data-baseweb="popover"] [role="option"] {
-                    min-height: 25px !important;
-                    line-height: 1.2 !important;
-                }
+                    min-height: 22px !important;
             </style>
         """, unsafe_allow_html=True)
        
