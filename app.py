@@ -170,7 +170,7 @@ if selected_sku:
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # 1. Definimos la opción (si hay varias, el selectbox va arriba)
+                # 1. Selector de Variedad (Se renderiza PRIMERO)
                 if tiene_opciones:
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
@@ -183,49 +183,45 @@ if selected_sku:
                 else:
                     opcion_elegida = opciones[0]
 
-                # 2. Variables de estilo
+                # 2. Preparación de datos para la opción seleccionada
                 esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
                 precio_cl = f"$ {opcion_elegida['Precio']:,.0f}".replace(",", ".")
                 color_tienda = mapa_colores.get(tienda, "#eee")
                 
-                # Ajuste de altura y diseño: si tiene opciones, aumentamos el height
-                altura_card = "90px" if tiene_opciones else "54px"
-                padding_top = "10px" if tiene_opciones else "0px"
-                
+                # --- AJUSTES DINÁMICOS DE ALTURA ---
+                # Si tiene opciones, la card es más alta y empujamos el contenido hacia abajo
+                h_card = "95px" if tiene_opciones else "56px"
+                m_top_card = "-48px" if tiene_opciones else "0px"
+                padding_internos = "40px" if tiene_opciones else "0px"
+
                 bg_card = '#f0fff4' if (i == 0 and not esta_agotado) else ('#fafafa' if esta_agotado else 'white')
                 border_card = '#2ecc71' if (i == 0 and not esta_agotado) else '#eee'
+                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
+                p_events = "none" if esta_agotado else "auto"
 
-                # 3. HTML Integrado
-                # Usamos un contenedor que "abraza" visualmente el espacio del selectbox
-                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;">AGOTADO</span>' if esta_agotado else ''
+                # 3. HTML ÚNICO (Sin concatenaciones para evitar código expuesto)
+                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;margin-top:2px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
                 
-                html_card = f"""
-                <div style="background:{bg_card}; border:1px solid {border_card}; border-radius:8px; 
-                            padding:12px; margin-top:-45px; position:relative; z-index:1;
-                            display:flex; justify-content:space-between; align-items:center; 
-                            height:{altura_card}; width:100%; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
-                    <div style="display:flex; align-items:center; margin-top:{padding_top};">
-                        <div style="width:12px; height:12px; border-radius:50%; background:{color_tienda}; margin-right:10px;"></div>
-                        <div>
-                            <div style="font-size:13px; font-weight:800; color:#333;">{tienda}</div>
+                html_final = f"""
+                <div style="background:{bg_card}; border:1px solid {border_card}; border-radius:8px; padding:8px 12px; margin-top:{m_top_card}; margin-bottom:12px; height:{h_card}; width:100%; display:flex; justify-content:space-between; align-items:center; box-shadow:0 2px 4px rgba(0,0,0,0.02); position:relative;">
+                    <div style="display:flex; align-items:center; width:150px; margin-top:{padding_internos};">
+                        <div style="width:13px; height:13px; border-radius:50%; background-color:{color_tienda}; margin-right:10px; flex-shrink:0;"></div>
+                        <div style="display:flex; flex-direction:column; opacity:{'0.5' if esta_agotado else '1.0'};">
+                            <div style="font-size:13px; font-weight:800; color:#333; line-height:1.1;">{tienda}</div>
                             {badge}
                         </div>
                     </div>
-                    <div style="text-align:right; flex-grow:1; margin-right:15px; margin-top:{padding_top};">
-                        <span style="font-size:16px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
+                    <div style="flex-grow:1; text-align:right; margin-right:15px; margin-top:{padding_internos}; opacity:{'0.5' if esta_agotado else '1.0'};">
+                        <span style="font-size:15px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
                     </div>
-                    <div style="margin-top:{padding_top};">
-                        <a href="{opcion_elegida['URL']}" target="_blank" 
-                           style="background:{'#ccc' if esta_agotado else '#1abc9c'}; color:white; 
-                                  padding:8px 16px; border-radius:6px; text-decoration:none; 
-                                  font-weight:bold; font-size:11px; pointer-events:{'none' if esta_agotado else 'auto'};">
+                    <div style="margin-top:{padding_internos};">
+                        <a href="{opcion_elegida['URL']}" target="_blank" style="background-color:{btn_bg}; color:white; padding:6px 14px; border-radius:6px; text-decoration:none; font-weight:bold; font-size:11px; pointer-events:{p_events}; opacity:{'0.5' if esta_agotado else '1.0'};">
                             {"Agotado" if esta_agotado else "Ir al sitio"}
                         </a>
                     </div>
                 </div>
                 """
-                # El margin-top negativo (-45px) hace que la card suba y "envuelva" al selectbox de Streamlit
-                st.markdown(html_card, unsafe_allow_html=True)
+                st.markdown(html_final, unsafe_allow_html=True)
 
             with c_check:
                 check_inicial = (not esta_agotado and contador_grafica < 5)
@@ -234,7 +230,7 @@ if selected_sku:
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
                     "id_producto": opcion_elegida['id_producto']
                 }
-               
+                
     with col_grafica:
         st.markdown("#### 📈 Evolución Histórica")
         tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
