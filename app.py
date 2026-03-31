@@ -164,6 +164,7 @@ if selected_sku:
         st.markdown("#### 💰 Ofertas Actuales")
         st.markdown("""
             <style>
+                /* 1. POSICIÓN DE LA CARD (Contenedor del selectbox) */
                 [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
                     margin-top: 0px !important; 
                     margin-bottom: 0px !important;
@@ -174,12 +175,12 @@ if selected_sku:
 
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: 1px !important;  /* CORREGIDO: Tenías '1 px' con espacio */
+                    margin-top: 1px !important; 
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
 
-                /* --- AJUSTE DE ALTURA Y CENTRADO DE TEXTO --- */
+                /* 2. EL TEXTO SELECCIONADO  */
                 div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
                     border-radius: 20px !important; 
                     height: 35px !important; 
@@ -188,34 +189,30 @@ if selected_sku:
                     background-color: #fcfcfc !important;
                     display: flex !important;
                     align-items: center !important;
-                    padding-top: 0px !important;
-                    padding-bottom: 0px !important;
                 }
 
-                /* Tamaño de letra seleccionado */
-                div[data-testid="stSelectbox"] [data-baseweb="select"] div {
-                    font-size: 12px !important;
-                    line-height: 1 !important;
-                }
-                
-                /* 3. TAMAÑOS LETRA DESPLEGABLE */
-                /* CORREGIDO: El comentario de arriba no estaba cerrado con '*/' */
-                
-                [data-baseweb="menu"] [role="option"] div,
-                [data-baseweb="menu"] [role="option"] span,
-                [data-baseweb="popover"] li {
+                /* Tamaño de letra del valor seleccionado */
+                div[data-testid="stSelectbox"] [data-baseweb="select"] * {
                     font-size: 12px !important; 
-                    line-height: 1.1 !important;
+                }
+                
+                /* 3. LA LISTA DESPLEGABLE (EL POPUP QUE SE ABRE) */                
+                div[role="listbox"] li, 
+                div[role="listbox"] div,
+                div[role="listbox"] span,
+                [data-baseweb="popover"] * {
+                    font-size: 12px !important; 
                 }
 
-                /* Ajustamos la altura de las filas en la lista */
-                [data-baseweb="menu"] [role="option"] {
+                /* Altura de las filas en la lista para que coincida con la letra chica */
+                div[role="option"] {
+                    min-height: 24px !important;
                     padding-top: 2px !important;
                     padding-bottom: 2px !important;
-                    min-height: 22px !important;
-                } /* CORREGIDO: Faltaba esta llave */
+                }
 
-            </style> """, unsafe_allow_html=True)
+            </style>
+        """, unsafe_allow_html=True)
        
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
