@@ -174,7 +174,7 @@ if selected_sku:
 
                 div[data-testid="stSelectbox"] {
                     width: 90% !important; 
-                    margin-top: -18px !important; 
+                    margin-top: -3px !important; 
                     margin-bottom: 5px !important;
                     z-index: 10;
                 }
@@ -184,8 +184,8 @@ if selected_sku:
                     border-radius: 20px !important; 
                     
                     /* 1. ALTURA: Achica este valor para que el desplegable sea más delgado */
-                    height: 28px !important; 
-                    min-height: 28px !important; 
+                    height: 25px !important; 
+                    min-height: 25px !important; 
 
                     border: 1px solid #ddd !important;
                     background-color: #fcfcfc !important;
