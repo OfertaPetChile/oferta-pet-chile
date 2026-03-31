@@ -165,76 +165,71 @@ if selected_sku:
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
             opciones = row['Opciones']
+            tiene_opciones = len(opciones) > 1
             
-            # 1. Columnas de la fila: Checkbox | Contenedor de Tienda
             c_check, c_card = st.columns([0.1, 0.9])
             
             with c_card:
-                # --- PASO 1: El Desplegable dentro de la Card ---
-                # Si hay más de una opción, el selectbox aparece al inicio de la columna
-                if len(opciones) > 1:
+                # 1. Definimos la opción (si hay varias, el selectbox va arriba)
+                if tiene_opciones:
                     fmt = lambda x: f"$ {x['Precio']:,.0f} - {x['Disponibilidad']}"
                     opcion_elegida = st.selectbox(
                         f"Variedad en {tienda}", 
                         opciones, 
                         format_func=fmt, 
                         key=f"sel_{tienda}_{selected_sku}",
-                        label_visibility="collapsed" # Esto es clave para que no use espacio extra
+                        label_visibility="collapsed"
                     )
                 else:
                     opcion_elegida = opciones[0]
 
-                # --- PASO 2: Variables de la opción seleccionada ---
-                precio_val = opcion_elegida['Precio']
-                url_tienda = opcion_elegida['URL']
-                dispo_status = str(opcion_elegida['Disponibilidad']).strip().capitalize()
-                esta_agotado = "Agotado" in dispo_status
-                
-                precio_cl = f"$ {precio_val:,.0f}".replace(",", ".")
+                # 2. Variables de estilo
+                esta_agotado = "Agotado" in str(opcion_elegida['Disponibilidad']).capitalize()
+                precio_cl = f"$ {opcion_elegida['Precio']:,.0f}".replace(",", ".")
                 color_tienda = mapa_colores.get(tienda, "#eee")
                 
-                # Estilos dinámicos
-                es_top = (i == 0 and not esta_agotado)
-                opacidad_info = "0.5" if esta_agotado else "1.0"
-                bg_card = '#f0fff4' if es_top else ('#fafafa' if esta_agotado else 'white')
-                border_card = '#2ecc71' if es_top else '#eee'
-                btn_bg = "#ccc" if esta_agotado else "#1abc9c"
-                btn_txt = "Agotado" if esta_agotado else "Ir al sitio"
-                p_events = "none" if esta_agotado else "auto"
-
-                # --- PASO 3: El HTML de la Card (Ajustado con margen negativo) ---
-                badge = f'<span style="background-color:#e74c3c;color:white;padding:1px 5px;border-radius:4px;font-size:9px;font-weight:bold;margin-top:3px;display:inline-block;">AGOTADO</span>' if esta_agotado else ''
+                # Ajuste de altura y diseño: si tiene opciones, aumentamos el height
+                altura_card = "90px" if tiene_opciones else "54px"
+                padding_top = "10px" if tiene_opciones else "0px"
                 
-                # Se eliminan saltos de línea dentro de las variables para evitar código expuesto
-                html_final = (
-                    f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                    f'background-color:{bg_card};padding:8px 12px;border-radius:8px;'
-                    f'border:1px solid {border_card};margin-top:-5px;margin-bottom:10px;height:54px;width:100%;'
-                    f'box-shadow:0 2px 4px rgba(0,0,0,0.02);">'
-                    f'<div style="display:flex;align-items:center;width:150px;flex-shrink:0;">'
-                    f'<div style="width:13px;height:13px;border-radius:50%;background-color:{color_tienda};'
-                    f'margin-right:10px;flex-shrink:0;"></div>'
-                    f'<div style="display:flex;flex-direction:column;opacity:{opacidad_info};">'
-                    f'<div style="font-size:13px;font-weight:800;color:#333;line-height:1.1;">{tienda}</div>'
-                    f'{badge}'
-                    f'</div></div>'
-                    f'<div style="flex-grow:1;text-align:right;margin-right:12px;opacity:{opacidad_info};">'
-                    f'<span style="font-size:15px;font-weight:800;color:#2c3e50;">{precio_cl}</span>'
-                    f'</div>'
-                    f'<a href="{url_tienda}" target="_blank" style="background-color:{btn_bg};color:white;'
-                    f'padding:6px 14px;border-radius:6px;text-decoration:none;font-weight:bold;font-size:11px;'
-                    f'white-space:nowrap;pointer-events:{p_events};opacity:{opacidad_info};">{btn_txt}</a>'
-                    f'</div>'
-                )
-                st.markdown(html_final, unsafe_allow_html=True)
+                bg_card = '#f0fff4' if (i == 0 and not esta_agotado) else ('#fafafa' if esta_agotado else 'white')
+                border_card = '#2ecc71' if (i == 0 and not esta_agotado) else '#eee'
+
+                # 3. HTML Integrado
+                # Usamos un contenedor que "abraza" visualmente el espacio del selectbox
+                badge = f'<span style="background:#e74c3c;color:white;padding:2px 4px;border-radius:4px;font-size:10px;font-weight:bold;">AGOTADO</span>' if esta_agotado else ''
+                
+                html_card = f"""
+                <div style="background:{bg_card}; border:1px solid {border_card}; border-radius:8px; 
+                            padding:12px; margin-top:-45px; position:relative; z-index:1;
+                            display:flex; justify-content:space-between; align-items:center; 
+                            height:{altura_card}; width:100%; box-shadow:0 2px 4px rgba(0,0,0,0.02);">
+                    <div style="display:flex; align-items:center; margin-top:{padding_top};">
+                        <div style="width:12px; height:12px; border-radius:50%; background:{color_tienda}; margin-right:10px;"></div>
+                        <div>
+                            <div style="font-size:13px; font-weight:800; color:#333;">{tienda}</div>
+                            {badge}
+                        </div>
+                    </div>
+                    <div style="text-align:right; flex-grow:1; margin-right:15px; margin-top:{padding_top};">
+                        <span style="font-size:16px; font-weight:800; color:#2c3e50;">{precio_cl}</span>
+                    </div>
+                    <div style="margin-top:{padding_top};">
+                        <a href="{opcion_elegida['URL']}" target="_blank" 
+                           style="background:{'#ccc' if esta_agotado else '#1abc9c'}; color:white; 
+                                  padding:8px 16px; border-radius:6px; text-decoration:none; 
+                                  font-weight:bold; font-size:11px; pointer-events:{'none' if esta_agotado else 'auto'};">
+                            {"Agotado" if esta_agotado else "Ir al sitio"}
+                        </a>
+                    </div>
+                </div>
+                """
+                # El margin-top negativo (-45px) hace que la card suba y "envuelva" al selectbox de Streamlit
+                st.markdown(html_card, unsafe_allow_html=True)
 
             with c_check:
-                # Sincronización del checkbox con el ID de la opción elegida en el selectbox
-                check_inicial = False
-                if not esta_agotado and contador_grafica < 5:
-                    check_inicial = True
-                    contador_grafica += 1
-                
+                check_inicial = (not esta_agotado and contador_grafica < 5)
+                if check_inicial: contador_grafica += 1
                 seleccion_tiendas[tienda] = {
                     "active": st.checkbox("", value=check_inicial, key=f"ch_{tienda}_{selected_sku}"),
                     "id_producto": opcion_elegida['id_producto']
