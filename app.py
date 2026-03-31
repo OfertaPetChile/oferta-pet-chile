@@ -171,7 +171,7 @@ if selected_sku:
                     display: flex;
                     justify-content: center;
                     /* Aseguramos que el contenedor no colapse */
-                    min-height: 45px !important; 
+                    min-height: 40px !important; 
                 }
 
                 /* El widget: Ajustamos el margin-top para BAJARLO */
