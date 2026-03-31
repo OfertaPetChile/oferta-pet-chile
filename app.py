@@ -161,34 +161,47 @@ if selected_sku:
     contador_grafica = 0
 
     with col_precios:
-        st.markdown("#### 💰 Ofertas Actuales")
-            <style>
-                /* 1. El contenedor padre mantiene su espacio para evitar solapamiento */
-                [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
-                    margin-top: 0px !important; 
-                    margin-bottom: 0px !important;
-                    padding-bottom: 10px !important; /* Espacio de seguridad */
-                    display: flex;
-                    justify-content: center;
-                }
+    st.markdown("#### 💰 Ofertas Actuales")
 
-                /* 2. Succionamos el widget solo desde su margen superior interno */
-                div[data-testid="stSelectbox"] {
-                    width: 90% !important; 
-                    margin-top: -32px !important; /* Aquí es donde sube sin mover la card */
-                    margin-bottom: 5px !important;
-                    z-index: 10;
-                }
+    # 1. ESTO REEMPLAZA todos los estilos previos y divs de margen negativo
+    st.markdown("""
+        <style>
+            [data-testid="stVerticalBlock"] > div:has(div[data-testid="stSelectbox"]) {
+                margin-top: -28px !important; 
+                margin-bottom: 2px !important;
+                display: flex;
+                justify-content: center;
+            }
+            div[data-testid="stSelectbox"] {
+                width: 94% !important; 
+                margin: 0 auto !important;
+            }
+            div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
+                border-radius: 20px !important; 
+                min-height: 32px !important;
+                border: 1px solid #ddd !important;
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-                /* 3. Estilo de píldora y altura */
-                div[data-testid="stSelectbox"] [data-baseweb="select"] > div {
-                    border-radius: 20px !important; 
-                    min-height: 30px !important;
-                    border: 1px solid #ddd !important;
-                    background-color: #fcfcfc !important;
-                }
-            </style>
-        """, unsafe_allow_html=True)
+    for i, row in df_resumen.iterrows():
+        # ... (código de columnas y fondo de tarjeta igual) ...
+        
+        with c_card:
+            # ... (código de info_html con el margin-top: -8px que ya te funcionó) ...
+
+            # 2. EL SELECTOR queda ahora así de simple:
+            if tiene_opciones:
+                fmt = lambda x: f"Variedad: $ {x['Precio']:,.0f} - {x['Disponibilidad']}"
+                opcion_elegida = st.selectbox(
+                    f"Variedad en {tienda}", 
+                    opciones, 
+                    format_func=fmt, 
+                    key=op_id, 
+                    label_visibility="collapsed"
+                )
+            else:
+                opcion_elegida = opciones[0]
        
         for i, row in df_resumen.iterrows():
             tienda = row['Tienda']
