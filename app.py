@@ -358,21 +358,23 @@ else:
         for idx, p in enumerate(productos_lista):
             with cols[idx % 5]:
                 # Limpiamos nombre para el f-string
-                n_display = p['nombre'].replace('"', '').replace("'", "")
-                
+                nombre_a_mostrar = p.get('nombre_oficial') or p.get('nombre') or "Producto"
+                n_display = nombre_a_mostrar.replace('"', '').replace("'", "")
+
                 st.markdown(
-                    f'<div class="product-card">'
-                    f'<img src="{p["img"]}" style="width:100%; height:150px; object-fit:contain;" referrerpolicy="no-referrer">'
-                    f'<div>'
-                    f'<div class="product-title" style="height:40px; overflow:hidden; font-size:12px; line-height:1.2;">{n_display}</div>'
-                    f'<div class="ver-detalle-text" style="color:#e67e22; font-weight:bold; font-size:11px; margin-top:5px;">Ver comparativa</div>'
-                    f'</div>'
-                    f'</div>',
-                    unsafe_allow_html=True
+                   f'<div class="product-card">'
+                   f'<img src="{p["img"]}" style="width:100%; height:150px; object-fit:contain;" referrerpolicy="no-referrer">'
+                   f'<div>'
+                   f'<div class="product-title" style="height:45px; overflow:hidden; font-size:13px; line-height:1.2; font-weight:700; color:#333;">{n_display}</div>'
+                   f'<div class="ver-detalle-text" style="color:#e67e22; font-weight:bold; font-size:11px; margin-top:5px;">Ver comparativa</div>'
+                   f'</div>'
+                   f'</div>',
+                   unsafe_allow_html=True
                 )
-                
+               
+                # Botón invisible sobre la card o botón inferior (según tu preferencia)
                 if st.button("Ver detalle", key=f"btn_{p['id']}_{idx}", use_container_width=True):
-                    st.query_params.sku = p['id']
-                    st.rerun()
+                   st.query_params.sku = p['id']
+                   st.rerun()
     else:
         st.info("No se encontraron productos. Intenta con otra palabra.")
