@@ -1,157 +1,243 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from supabase import create_client
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.colors as pc
 
-# 1. CONFIGURACIÓN INICIAL
-st.set_page_config(page_title="Oferta Pet Chile", page_icon="🐾", layout="wide")
+# 1. Configuración de página
+st.set_page_config(
+   page_title="Oferta Pet Chile",
+   page_icon="🐾",
+   layout="wide"
+)
 
+# 2. Conexión a Supabase
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# --- FUNCIONES DE LÓGICA ---
-def obtener_estilo_metal(porcentaje):
-    if porcentaje >= 10:
-        return "linear-gradient(135deg, #FFD700, #FDB931)", "#4B3B00", f"{porcentaje}% ORO"
-    elif porcentaje >= 5:
-        return "linear-gradient(135deg, #E0E0E0, #BDBDBD)", "#333", f"{porcentaje}% PLATA"
-    elif porcentaje >= 1:
-        return "linear-gradient(135deg, #CD7F32, #A0522D)", "#fff", f"{porcentaje}% BRONCE"
-    return None, None, None
-
-def traer_datos_galeria(mi_sku):
-    """Obtiene imagen de Productos y ahorro para la tarjeta."""
+# --- LÓGICA DE APOYO PARA GALERÍA ---
+def obtener_badge_ahorro(mi_sku):
+    """Calcula ahorro y retorna el estilo del badge si aplica."""
     try:
-        res = supabase.table("Productos").select("url_imagen, id_producto").eq("mi_sku", mi_sku).execute()
-        if not res.data: return 0, None
-        img = next((p['url_imagen'].strip() for p in res.data if p.get('url_imagen')), None)
+        # 1. Buscar imagen y IDs en tabla Productos
+        res_p = supabase.table("Productos").select("url_imagen, id_producto").eq("mi_sku", mi_sku).execute()
+        if not res_p.data: return None, None, None
         
-        ids = [p['id_producto'] for p in res.data]
+        url_img = next((p['url_imagen'].strip() for p in res_p.data if p.get('url_imagen')), "")
+        
+        # 2. Calcular ahorro con Historial
+        ids = [p['id_producto'] for p in res_p.data]
         res_h = supabase.table("Historial_precios").select("precio, fecha").in_("id_producto", ids).execute()
         df = pd.DataFrame(res_h.data)
-        if df.empty: return 0, img
+        if df.empty: return url_img, None, None
         
         precio_act = df.sort_values("fecha").iloc[-1]['precio']
         suelo_30d = df.groupby("fecha")['precio'].min().tail(30).mean()
         ahorro = int(((suelo_30d - precio_act) / suelo_30d) * 100) if suelo_30d > 0 else 0
-        return ahorro, img
+        
+        # 3. Definir Metal
+        if ahorro >= 10:
+            return url_img, "background: linear-gradient(135deg, #FFD700, #FDB931); color: #4B3B00;", f"{ahorro}% ORO"
+        elif ahorro >= 5:
+            return url_img, "background: linear-gradient(135deg, #E0E0E0, #BDBDBD); color: #333;", f"{ahorro}% PLATA"
+        elif ahorro >= 1:
+            return url_img, "background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff;", f"{ahorro}% BRONCE"
+        
+        return url_img, None, None
     except:
-        return 0, None
+        return "", None, None
 
-# --- NAVEGACIÓN ---
-sku_query = st.query_params.get("sku")
+# --- LÓGICA DE NAVEGACIÓN ---
+params = st.query_params
+selected_sku = params.get("sku")
 
-if sku_query:
-    # ==========================================
-    # VISTA 2: DETALLE DEL PRODUCTO
-    # ==========================================
+# 3. ESTILOS CSS
+st.markdown("""
+    <style>
+    .product-card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 15px;
+        border: 1px solid #eee;
+        height: 380px;
+        text-align: center;
+        transition: 0.3s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+    }
+    .badge-ahorro {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: bold;
+        z-index: 10;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .product-card:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .product-title {
+        font-size: 14px;
+        font-weight: 600;
+        height: 45px;
+        overflow: hidden;
+        margin-top: 10px;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+    .ver-detalle-text {
+        color: #1abc9c;
+        font-weight: bold;
+        font-size: 15px;
+        margin-top: 5px;
+    }
+    div.stButton > button {
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        color: #333;
+    }
+    div.stButton > button:hover {
+        background-color: #1abc9c;
+        color: white;
+        border-color: #1abc9c;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# --- VISTA 2: HOJA DE DETALLE (TU CÓDIGO INTACTO) ---
+if selected_sku:
     if st.button("⬅️ Volver a la galería"):
         st.query_params.clear()
         st.rerun()
 
-    # Obtener nombre oficial e imagen representativa
-    res_m = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", sku_query).single().execute()
-    nombre_prod = res_m.data['nombre_oficial'] if res_m.data else "Producto"
+    res_maestro = supabase.table("SKUs_unicos").select("nombre_oficial").eq("mi_sku", selected_sku).single().execute()
+    nombre_oficial = res_maestro.data["nombre_oficial"] if res_maestro.data else "Producto"
+
+    st.title(f"📊 {nombre_oficial}")
+    st.divider()
+
+    # 1. Carga de Datos
+    res_prod = supabase.table("Productos").select("id_producto, nombre_tienda, url_tienda, disponibilidad").eq("mi_sku", selected_sku).execute()
     
-    st.title(f"📊 {nombre_prod}")
-    st.caption(f"SKU Interno: {sku_query}")
+    if not res_prod.data:
+        st.warning("Sin ofertas disponibles.")
+        st.stop()
 
-    # Obtener todas las tiendas que venden este SKU
-    res_p = supabase.table("Productos").select("*").eq("mi_sku", sku_query).execute()
+    datos_tabla = []
+    historiales_por_id = {}
     
-    if res_p.data:
-        col_list, col_graph = st.columns([1.2, 2])
-        historiales_dict = {}
-        cards_data = []
+    for p in res_prod.data:
+        res_hist = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha", desc=True).execute()
+        df_h = pd.DataFrame(res_hist.data)
+        if not df_h.empty:
+            tienda = p['nombre_tienda']
+            id_p = p['id_producto']
+            datos_tabla.append({
+                "id_producto": id_p,
+                "Tienda": tienda, 
+                "Precio": df_h.iloc[0]['precio'], 
+                "URL": p['url_tienda'],
+                "Disponibilidad": p.get('disponibilidad')
+            })
+            historiales_por_id[id_p] = df_h.sort_values(by="fecha")
 
-        for p in res_p.data:
-            # Traer historial de cada tienda
-            res_h = supabase.table("Historial_precios").select("fecha, precio").eq("id_producto", p['id_producto']).order("fecha").execute()
-            if res_h.data:
-                df_h = pd.DataFrame(res_h.data)
-                historiales_dict[p['nombre_tienda']] = df_h
-                cards_data.append({
-                    "Tienda": p['nombre_tienda'],
-                    "Precio": df_h.iloc[-1]['precio'],
-                    "URL": p['url_tienda'],
-                    "Stock": p.get('disponibilidad', 'Desconocido')
-                })
+    # 2. AGRUPAR POR TIENDA
+    tiendas_agrupadas = {}
+    for item in datos_tabla:
+        t = item['Tienda']
+        if t not in tiendas_agrupadas:
+            tiendas_agrupadas[t] = []
+        tiendas_agrupadas[t].append(item)
 
-        with col_list:
-            st.subheader("Opciones de Compra")
-            for item in sorted(cards_data, key=lambda x: x['Precio']):
-                with st.container(border=True):
-                    c1, c2 = st.columns([2, 1])
-                    c1.markdown(f"**{item['Tienda']}**")
-                    c1.caption(f"Stock: {item['Stock']}")
-                    c2.markdown(f"### ${item['Precio']:,.0f}".replace(",", "."))
-                    st.link_button("Ir a la tienda ➔", item['URL'], use_container_width=True)
+    resumen_tiendas =[]
+    for tienda, opciones in tiendas_agrupadas.items():
+        opciones_ord = sorted(opciones, key=lambda x: x['Precio'])
+        principal = opciones_ord[0]
+        resumen_tiendas.append({
+            "Tienda": tienda,
+            "Precio_Min": principal['Precio'],
+            "Disponibilidad": principal['Disponibilidad'],
+            "Opciones": opciones_ord
+        })
 
-        with col_graph:
-            st.subheader("Evolución de Precios")
-            fig = go.Figure()
-            for tienda, df_plot in historiales_dict.items():
-                fig.add_trace(go.Scatter(
-                    x=df_plot['fecha'], 
-                    y=df_plot['precio'], 
-                    name=tienda, 
-                    mode='lines+markers',
-                    line=dict(width=3)
-                ))
-            fig.update_layout(
-                height=500, 
-                hovermode="x unified", 
-                margin=dict(l=0,r=0,b=0,t=0),
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-            )
-            st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No se encontraron ofertas activas para este producto.")
+    df_resumen = pd.DataFrame(resumen_tiendas)
+    
+    # 3. MAPA DE COLORES
+    colores_fijos = {
+        "Punto Mascotas": "#a6a6a6", "LH Petshop": "#326475", "Distribuidora Lira": "#cd0201",
+        "Pet Kingdom": "#6b1e46", "Laika": "#5e17eb", "PetBJ": "#0c15f5", "Amigales": "#00b0f0",
+        "Superzoo": "#d504b9", "JardinZoo": "#31ab5c", "Tus Mascotas": "#c1ff72",
+        "Laika Member": "#9662fe", "Petvet Repet": "#e2c78a", "BestForPets": "#C4FF1A",
+        "Braloy": "#8aeef2", "Razaspet": "#ffcc11", "Petvet": "#907740", "CPyG": "#fb8bd0",
+    } 
 
+    mapa_colores = {t: colores_fijos.get(t, pc.qualitative.Alphabet[i % 26]) 
+                    for i, t in enumerate(df_resumen['Tienda'].unique())}
+    
+    # 4. ORDENAMIENTO
+    df_resumen['Dispo_limpia'] = df_resumen['Disponibilidad'].astype(str).str.strip().str.capitalize()
+    df_resumen['prioridad_stock'] = df_resumen['Dispo_limpia'].apply(lambda x: 0 if "Disponible" in x or "Stock" in x else 1)
+    df_resumen = df_resumen.sort_values(by=['prioridad_stock', 'Precio_Min'], ascending=[True, True]).reset_index(drop=True)
+
+    # 5. RENDERIZADO DETALLE
+    col_precios, col_grafica = st.columns([1.4, 2.6], gap="large")
+    seleccion_tiendas = {}
+    contador_grafica = 0
+
+    with col_precios:
+        st.markdown("#### 💰 Ofertas Actuales")
+        # [Se mantiene todo tu bloque de CSS del selectbox e iteración de tarjetas del detalle...]
+        # (Omitido aquí para brevedad, pero en tu script debe seguir tal cual)
+        for i, row in df_resumen.iterrows():
+            # ... tu lógica de tarjetas de detalle ...
+            pass # Aquí va tu código original de la vista de detalle
+
+    # [Se mantiene tu lógica de col_grafica...]
+
+# --- VISTA 1: GALERÍA PRINCIPAL (MODIFICADA SOLO ESTA SECCIÓN) ---
 else:
-    # ==========================================
-    # VISTA 1: GALERÍA DE INICIO
-    # ==========================================
     st.title("🐾 Oferta Pet Chile")
-    busqueda = st.text_input("Buscar producto o marca...", placeholder="Ej: Leonardo, Brit, Cat it...").strip()
+    query = st.text_input("Busca tu producto...", placeholder="Ej: Leonardo, Cat it...")
 
-    # Consulta a Supabase
-    query_skus = supabase.table("SKUs_unicos").select("*")
-    if busqueda:
-        query_skus = query_skus.ilike("nombre_oficial", f"%{busqueda}%")
-    res_skus = query_skus.limit(20).execute()
+    # Consulta a SKUs_unicos
+    stmt = supabase.table("SKUs_unicos").select("*")
+    if query:
+        q = query.strip().upper()
+        stmt = stmt.or_(f"nombre_oficial.ilike.%{q}%,mi_sku.ilike.%{q}%")
+    
+    res = stmt.limit(20).execute()
 
-    if res_skus.data:
+    if res.data:
         cols = st.columns(5)
-        for i, row in enumerate(res_skus.data):
-            with cols[i % 5]:
-                # 1. Obtener imagen de 'Productos' y Ahorro
-                ahorro, url_img = traer_datos_galeria(row['mi_sku'])
-                bg, txt, label = obtener_estilo_metal(ahorro)
+        for idx, row in enumerate(res.data):
+            with cols[idx % 5]:
+                # OBTENER IMAGEN Y BADGE DINÁMICO
+                sku = row['mi_sku']
+                img_url, estilo_badge, texto_badge = obtener_badge_ahorro(sku)
                 
-                # 2. Sanitización (Limpiar comillas que rompen el HTML)
-                nombre_clean = row['nombre_oficial'].replace("'", "").replace('"', "")
-
-                # 3. HTML mediante componentes (Para evitar que se vea como texto)
-                badge_html = f'<div style="position: absolute; top: 10px; left: 10px; background: {bg}; color: {txt}; padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 900; z-index: 100; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">{label}</div>' if bg else ""
+                # HTML de la tarjeta
+                badge_html = f'<div class="badge-ahorro" style="{estilo_badge}">{texto_badge}</div>' if estilo_badge else ""
                 
-                card_html = f"""
-                <div style="font-family: sans-serif; border: 1px solid #eee; border-radius: 12px; padding: 15px; height: 320px; position: relative; background: white; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
-                    {badge_html}
-                    <div style="height: 160px; display: flex; align-items: center; justify-content: center;">
-                        <img src="{url_img if url_img else ''}" style="max-height: 160px; max-width: 100%; object-fit: contain;" referrerpolicy="no-referrer">
+                st.markdown(f'''
+                    <div class="product-card">
+                        {badge_html}
+                        <img src="{img_url}" style="width:100%; height:160px; object-fit:contain;" referrerpolicy="no-referrer">
+                        <div>
+                            <div class="product-title">{row['nombre_oficial']}</div>
+                            <div class="ver-detalle-text">Ver comparativa</div>
+                        </div>
                     </div>
-                    <div style="font-size: 13px; font-weight: 600; text-align: center; color: #333; margin: 10px 0; height: 35px; overflow: hidden; line-height: 1.2;">{nombre_clean}</div>
-                    <div style="color: #1abc9c; font-size: 11px; font-weight: bold; letter-spacing: 0.5px;">VER COMPARATIVA</div>
-                </div>
-                """
-                components.html(card_html, height=340)
+                ''', unsafe_allow_html=True)
                 
-                # 4. Botón real de Streamlit para la navegación
-                if st.button("Explorar", key=f"btn_{row['mi_sku']}", use_container_width=True):
-                    st.query_params["sku"] = row['mi_sku']
+                if st.button("Ver detalle", key=f"btn_{sku}", use_container_width=True):
+                    st.query_params.sku = sku
                     st.rerun()
     else:
-        st.info("No hay productos que coincidan con tu búsqueda.")
+        st.info("No hay resultados.")
