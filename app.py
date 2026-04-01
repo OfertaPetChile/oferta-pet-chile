@@ -319,30 +319,61 @@ else:
 
     # 1. Lógica de búsqueda unificada
     if query:
-        q = query.strip().upper()
-        
-        # A. Buscamos por nombre en SKUs unicos y Productos
-        res_sku = supabase.table("SKUs_unicos").select("*").ilike("nombre_oficial", f"%{q}%").execute()
-        res_prod = supabase.table("Productos").select("mi_sku, url_imagen, nombre_producto").ilike("nombre_producto", f"%{q}%").execute()
-        
-        # B. Unificamos para no repetir el mismo producto
-        vistos = set()
-        productos_lista = []
-
-        # Prioridad a nombres oficiales
-        for s in res_sku.data:
-            if s['mi_sku'] not in vistos:
-                # Buscamos imagen rápida para el SKU oficial
-                img_res = supabase.table("Productos").select("url_imagen").eq("mi_sku", s['mi_sku']).limit(1).execute()
-                img = img_res.data[0]['url_imagen'] if img_res.data else ""
-                productos_lista.append({"id": s['mi_sku'], "nombre": s['nombre_oficial'], "img": img})
-                vistos.add(s['mi_sku'])
-
-        # Añadimos lo encontrado por nombre de tienda (útil para exclusivos o términos distintos)
-        for p in res_prod.data:
-            if p['mi_sku'] not in vistos:
-                productos_lista.append({"id": p['mi_sku'], "nombre": p['nombre_producto'], "img": p['url_imagen']})
-                vistos.add(p['mi_sku'])
+       q = query.strip().upper()
+       
+       # A. Buscamos en Productos (Traemos todo de una: nombre, sku e imagen)
+       # Esto evita hacer un select por cada fila después.
+       res_prod = supabase.table("Productos")\
+           .select("mi_sku, url_imagen, nombre_producto, id_producto")\
+           .ilike("nombre_producto", f"%{q}%")\
+           .limit(40).execute()
+       
+       # B. Buscamos en SKUs_unicos (Solo si es necesario)
+       res_sku = supabase.table("SKUs_unicos")\
+           .select("mi_sku, nombre_oficial")\
+           .ilike("nombre_oficial", f"%{q}%")\
+           .limit(20).execute()
+   
+       vistos = set()
+       productos_lista = []
+   
+       # Mapeo rápido de nombres oficiales para acceso instantáneo
+       nombres_maestros = {s['mi_sku']: s['nombre_oficial'] for s in res_sku.data}
+   
+       # Procesamos todo en un solo paso
+       for p in res_prod.data:
+           id_ref = p['mi_sku'] if p['mi_sku'] else f"ID_{p['id_producto']}"
+           if id_ref not in vistos:
+               productos_lista.append({
+                   "id": id_ref,
+                   # Si tenemos el nombre oficial en nuestro mapa, lo usamos; si no, el de la tienda
+                   "nombre_final": nombres_maestros.get(p['mi_sku']) or p['nombre_producto'],
+                   "img": p['url_imagen'],
+                   "es_grupo": bool(p['mi_sku'])
+               })
+               vistos.add(id_ref)
+   else:
+       # INICIO: Traemos los últimos cargados pero ya con su imagen
+       # Usamos la tabla Productos directamente para evitar el bucle de imágenes
+       res_default = supabase.table("Productos")\
+           .select("mi_sku, url_imagen, nombre_producto")\
+           .not_.is_("mi_sku", "null")\
+           .order("created_at", desc=True)\
+           .limit(20).execute()
+           
+       productos_lista = []
+       vistos = set()
+       for p in res_default.data:
+           if p['mi_sku'] not in vistos:
+               # Aquí podrías cruzar con SKUs_unicos si quieres el nombre oficial
+               productos_lista.append({
+                   "id": p['mi_sku'],
+                   "nombre_final": p['nombre_producto'], # O busca el oficial si prefieres
+                   "img": p['url_imagen'],
+                   "es_grupo": True
+               })
+               vistos.add(p['mi_sku'])
+   
     else:
         # Si no hay búsqueda, mostramos los últimos 20 SKUs de la tabla maestra
         res_default = supabase.table("SKUs_unicos").select("*").limit(20).execute()
