@@ -372,14 +372,6 @@ else:
                })
                vistos.add(p['mi_sku'])
    
-    else:
-        res_default = supabase.table("SKUs_unicos").select("*").limit(20).execute()
-        productos_lista = []
-        for s in res_default.data:
-            img_res = supabase.table("Productos").select("url_imagen").eq("mi_sku", s['mi_sku']).limit(1).execute()
-            img = img_res.data[0]['url_imagen'] if img_res.data else ""
-            productos_lista.append({"id": s['mi_sku'], "nombre": s['nombre_oficial'], "img": img})
-
     # 2. Renderizado
     if productos_lista:
         cols = st.columns(5)
