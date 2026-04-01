@@ -353,14 +353,12 @@ else:
                })
                vistos.add(id_ref)
     else:
-           # INICIO: Traemos los últimos cargados que tengan mi_sku (agrupados)
-           # Usamos .is_("mi_sku", "not.null") que es la sintaxis más estable de Postgrest
+           # INICIO: Traemos los productos agrupados sin depender de una columna de fecha
            try:
                res_default = supabase.table("Productos") \
                    .select("mi_sku, url_imagen, nombre_producto") \
                    .filter("mi_sku", "not.is", "null") \
-                   .order("created_at", desc=True) \
-                   .limit(50).execute() # Traemos 50 para tener margen al filtrar duplicados
+                   .limit(100).execute() # Traemos una buena cantidad para filtrar
                
                data_raw = res_default.data
            except Exception as e:
@@ -370,12 +368,13 @@ else:
            productos_lista = []
            vistos = set()
            
+           # Filtramos duplicados de mi_sku para que la galería se vea limpia
            for p in data_raw:
                sku = p.get('mi_sku')
                if sku and sku not in vistos and len(productos_lista) < 20:
                    productos_lista.append({
                        "id": sku,
-                       "nombre_final": p.get('nombre_producto', 'Sin nombre'),
+                       "nombre_final": p.get('nombre_producto', 'Producto'),
                        "img": p.get('url_imagen', ''),
                        "es_grupo": True
                    })
