@@ -199,7 +199,7 @@ if selected_sku:
             # ... tu lógica de tarjetas de detalle ...
             pass # Aquí va tu código original de la vista de detalle
 
-# --- VISTA 1: GALERÍA PRINCIPAL (RECONSTRUIDA LÍNEA POR LÍNEA) ---
+# --- VISTA 1: GALERÍA PRINCIPAL (RECONSTRUIDA CON TU TÉCNICA DE F-STRINGS) ---
 else:
     st.title("🐾 Oferta Pet Chile")
     query = st.text_input("Busca tu producto...", placeholder="Ej: Leonardo, Cat it...")
@@ -217,28 +217,26 @@ else:
         for idx, row in enumerate(res.data):
             with cols[idx % 5]:
                 sku = row['mi_sku']
-                # Obtenemos imagen y badge (lógica anterior)
+                # Obtenemos imagen y medalla desde Productos/Historial
                 img_url, estilo_badge, texto_badge = obtener_badge_ahorro(sku)
                 
-                # Sanitización del nombre para evitar que comillas rompan el f-string
-                nombre_display = row['nombre_oficial'].replace('"', '').replace("'", "")
-
-                # --- RENDERIZADO LÍNEA POR LÍNEA PARA EVITAR ESCAPE DE HTML ---
-                st.markdown(f'<div class="product-card">', unsafe_allow_html=True)
+                # Sanitización para no romper los f-strings
+                nombre_cl = row['nombre_oficial'].replace('"', '').replace("'", "")
                 
-                if estilo_badge:
-                    st.markdown(f'<div class="badge-ahorro" style="{estilo_badge}">{texto_badge}</div>', unsafe_allow_html=True)
+                # --- RENDERIZADO USANDO TU TÉCNICA DE F-STRINGS POR LÍNEA ---
+                st.markdown(
+                    f'<div class="product-card">'
+                    f'{" " if not estilo_badge else f"<div class_nombre=\'badge-ahorro\' style=\'{estilo_badge} position:absolute; top:10px; left:10px; padding:2px 8px; border-radius:6px; font-size:10px; font-weight:bold; z-index:10;\'>{texto_badge}</div>"}'
+                    f'<img src="{img_url}" style="width:100%; height:160px; object-fit:contain; margin-top:10px;" referrerpolicy="no-referrer">'
+                    f'<div>'
+                    f'<div class="product-title">{nombre_cl}</div>'
+                    f'<div class="ver-detalle-text">Ver comparativa</div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
                 
-                # Imagen con Referrer Policy para evitar bloqueos
-                st.markdown(f'<img src="{img_url}" style="width:100%; height:160px; object-fit:contain;" referrerpolicy="no-referrer">', unsafe_allow_html=True)
-                
-                st.markdown(f'<div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="product-title">{nombre_display}</div>', unsafe_allow_html=True)
-                st.markdown(f'<div class="ver-detalle-text">Ver comparativa</div>', unsafe_allow_html=True)
-                st.markdown(f'</div>', unsafe_allow_html=True)
-                st.markdown(f'</div>', unsafe_allow_html=True)
-                
-                # Botón nativo de Streamlit
+                # Botón de navegación nativo
                 if st.button("Ver detalle", key=f"btn_{sku}_{idx}", use_container_width=True):
                     st.query_params.sku = sku
                     st.rerun()
