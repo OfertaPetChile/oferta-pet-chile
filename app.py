@@ -1,8 +1,6 @@
 import streamlit as st
 from supabase import create_client
 import pandas as pd
-import plotly.graph_objects as go
-import random
 
 # 1. CONFIGURACIÓN
 st.set_page_config(page_title="Oferta Pet Chile", page_icon="🐾", layout="wide")
@@ -11,143 +9,127 @@ url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
 
-# --- FUNCIONES ---
+# --- FUNCIONES DE LÓGICA ---
 def obtener_estilo_metal(porcentaje):
     if porcentaje >= 10:
-        return "linear-gradient(135deg, #FFD700 0%, #FDB931 100%)", "#4B3B00", f"{porcentaje}% ORO"
+        return "background: linear-gradient(135deg, #FFD700, #FDB931); color: #4B3B00;", f"{porcentaje}% ORO"
     elif porcentaje >= 5:
-        return "linear-gradient(135deg, #E0E0E0 0%, #BDBDBD 100%)", "#333333", f"{porcentaje}% PLATA"
+        return "background: linear-gradient(135deg, #E0E0E0, #BDBDBD); color: #333;", f"{porcentaje}% PLATA"
     elif porcentaje >= 1:
-        return "linear-gradient(135deg, #CD7F32 0%, #A0522D 100%)", "#ffffff", f"{porcentaje}% BRONCE"
-    return None, None, None
+        return "background: linear-gradient(135deg, #CD7F32, #A0522D); color: #fff;", f"{porcentaje}% BRONCE"
+    return None, None
 
-def obtener_datos_card(mi_sku):
-    """Trae una imagen y calcula el ahorro."""
+def traer_info_producto(mi_sku):
+    """Busca imagen en tabla Productos y calcula ahorro."""
     try:
-        # Buscamos en Productos para obtener la url_imagen
         res = supabase.table("Productos").select("url_imagen, id_producto").eq("mi_sku", mi_sku).execute()
         if not res.data:
             return 0, None
         
-        # Imagen: Tomamos la primera que no sea nula
-        imagenes = [p['url_imagen'] for p in res.data if p.get('url_imagen')]
-        img_final = imagenes[0] if imagenes else None
+        # Imagen (limpieza de URL por si acaso)
+        img = next((p['url_imagen'].strip() for p in res.data if p.get('url_imagen')), None)
         
-        # Ahorro: Historial
+        # Ahorro
         ids = [p['id_producto'] for p in res.data]
-        res_h = supabase.table("Historial_precios").select("fecha, precio").in_("id_producto", ids).execute()
+        res_h = supabase.table("Historial_precios").select("precio, fecha").in_("id_producto", ids).execute()
         df = pd.DataFrame(res_h.data)
+        if df.empty: return 0, img
         
-        if df.empty:
-            return 0, img_final
-            
-        precio_actual = df.sort_values("fecha").iloc[-1]['precio']
+        precio_act = df.sort_values("fecha").iloc[-1]['precio']
         suelo_30d = df.groupby("fecha")['precio'].min().tail(30).mean()
-        ahorro = int(((suelo_30d - precio_actual) / suelo_30d) * 100) if suelo_30d > 0 else 0
-        
-        return ahorro, img_final
+        ahorro = int(((suelo_30d - precio_act) / suelo_30d) * 100) if suelo_30d > 0 else 0
+        return ahorro, img
     except:
         return 0, None
 
-# --- CSS MEJORADO ---
+# --- CSS (Mantenlo simple) ---
 st.markdown("""
     <style>
-    .main-card {
+    .st-card {
         background: white;
-        border: 1px solid #eee;
-        border-radius: 12px;
-        padding: 15px;
-        height: 420px;
+        border: 1px solid #eeeeee;
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        height: 380px;
         position: relative;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
     }
-    .img-container {
-        height: 180px;
-        width: 100%;
-        position: relative;
+    .img-frame {
+        height: 160px;
         display: flex;
-        justify-content: center;
         align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
     }
-    .img-container img {
-        max-height: 100%;
+    .img-frame img {
+        max-height: 160px;
         max-width: 100%;
         object-fit: contain;
     }
     .badge-metal {
         position: absolute;
-        top: -5px;
-        left: -5px;
-        z-index: 99;
-        padding: 5px 10px;
-        border-radius: 6px;
+        top: 10px;
+        left: 10px;
+        padding: 5px 12px;
+        border-radius: 8px;
         font-weight: 900;
-        font-size: 10px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        font-size: 11px;
+        z-index: 100;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
     }
-    .card-title {
+    .product-name {
         font-size: 14px;
         font-weight: 600;
         color: #333;
-        margin: 12px 0;
         height: 40px;
         overflow: hidden;
-        line-height: 1.2;
+        margin-bottom: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
 
 # --- NAVEGACIÓN ---
-params = st.query_params
-if "sku" in params:
-    # VISTA DETALLE
-    if st.button("⬅️ Volver"):
+if "sku" in st.query_params:
+    if st.button("⬅️ Volver a Galería"):
         st.query_params.clear()
         st.rerun()
-    st.title(f"Producto: {params['sku']}")
-    # (Tu código de gráficos aquí)
+    st.title(f"Detalle: {st.query_params['sku']}")
+    # Tu lógica de detalles...
 else:
-    # VISTA GALERÍA
     st.title("🐾 Oferta Pet Chile")
-    query = st.text_input("Busca tu producto...", placeholder="Leonardo, Cat it, Brit...").strip()
+    busqueda = st.text_input("Buscar...", placeholder="Ej: Leonardo").strip()
 
-    # Obtener SKUs
-    if query:
-        res_skus = supabase.table("SKUs_unicos").select("*").ilike("nombre_oficial", f"%{query}%").limit(20).execute()
+    # Obtener SKUs base
+    if busqueda:
+        res_skus = supabase.table("SKUs_unicos").select("*").ilike("nombre_oficial", f"%{busqueda}%").limit(20).execute()
     else:
         res_skus = supabase.table("SKUs_unicos").select("*").limit(20).execute()
 
     if res_skus.data:
         cols = st.columns(5)
-        for idx, row in enumerate(res_skus.data):
-            with cols[idx % 5]:
-                # 1. Obtener imagen y ahorro desde la tabla Productos
-                ahorro, img_url = obtener_datos_card(row['mi_sku'])
+        for i, row in enumerate(res_skus.data):
+            with cols[i % 5]:
+                # 1. Obtener datos variables
+                ahorro, url_img = traer_info_producto(row['mi_sku'])
+                estilo_b, label_b = obtener_estilo_metal(ahorro)
                 
-                # 2. Preparar Badge
-                bg, txt, label = obtener_estilo_metal(ahorro)
-                badge_html = f'<div class="badge-metal" style="background:{bg}; color:{txt};">{label}</div>' if bg else ""
-                
-                # 3. Fallback de imagen
-                if not img_url:
-                    img_url = "https://via.placeholder.com/200?text=Sin+Imagen"
+                # 2. Construir Badge e Imagen
+                badge_html = f'<div class="badge-metal" style="{estilo_b}">{label_b}</div>' if estilo_b else ""
+                img_tag = f'<img src="{url_img}" referrerpolicy="no-referrer">' if url_img else '<div style="color:#ddd;">📷 Sin foto</div>'
 
-                # 4. Renderizado HTML (Todo en un solo bloque para evitar rupturas)
-                card_html = f"""
-                <div class="main-card">
-                    <div class="img-container">
-                        {badge_html}
-                        <img src="{img_url}" referrerpolicy="no-referrer">
+                # 3. Renderizar la tarjeta
+                st.markdown(f"""
+                <div class="st-card">
+                    {badge_html}
+                    <div class="img-frame">
+                        {img_tag}
                     </div>
-                    <div class="card-title">{row['nombre_oficial']}</div>
-                    <div style="color:#1abc9c; font-weight:bold; font-size:12px; margin-bottom:10px;">VER COMPARATIVA</div>
+                    <div class="product-name">{row['nombre_oficial']}</div>
+                    <p style="color:#1abc9c; font-size:12px; font-weight:700;">VER OFERTAS</p>
                 </div>
-                """
-                st.markdown(card_html, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
                 
-                # Botón de acción de Streamlit
-                if st.button("Explorar", key=f"btn_{row['mi_sku']}", use_container_width=True):
+                # 4. Botón de Streamlit (Separado del HTML)
+                if st.button("Ver detalle", key=f"btn_{row['mi_sku']}", use_container_width=True):
                     st.query_params["sku"] = row['mi_sku']
                     st.rerun()
