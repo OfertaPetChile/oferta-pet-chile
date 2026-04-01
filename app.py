@@ -353,24 +353,33 @@ else:
                })
                vistos.add(id_ref)
     else:
-       res_default = supabase.table("Productos")\
-           .select("mi_sku, url_imagen, nombre_producto")\
-           .not_.is_("mi_sku", "null")\
-           .order("created_at", desc=True)\
-           .limit(20).execute()
+           # INICIO: Traemos los últimos cargados que tengan mi_sku (agrupados)
+           # Usamos .is_("mi_sku", "not.null") que es la sintaxis más estable de Postgrest
+           try:
+               res_default = supabase.table("Productos") \
+                   .select("mi_sku, url_imagen, nombre_producto") \
+                   .filter("mi_sku", "not.is", "null") \
+                   .order("created_at", desc=True) \
+                   .limit(50).execute() # Traemos 50 para tener margen al filtrar duplicados
+               
+               data_raw = res_default.data
+           except Exception as e:
+               st.error(f"Error de base de datos: {e}")
+               data_raw = []
+   
+           productos_lista = []
+           vistos = set()
            
-       productos_lista = []
-       vistos = set()
-       for p in res_default.data:
-           if p['mi_sku'] not in vistos:
-               # Aquí podrías cruzar con SKUs_unicos si quieres el nombre oficial
-               productos_lista.append({
-                   "id": p['mi_sku'],
-                   "nombre_final": p['nombre_producto'], # O busca el oficial si prefieres
-                   "img": p['url_imagen'],
-                   "es_grupo": True
-               })
-               vistos.add(p['mi_sku'])
+           for p in data_raw:
+               sku = p.get('mi_sku')
+               if sku and sku not in vistos and len(productos_lista) < 20:
+                   productos_lista.append({
+                       "id": sku,
+                       "nombre_final": p.get('nombre_producto', 'Sin nombre'),
+                       "img": p.get('url_imagen', ''),
+                       "es_grupo": True
+                   })
+                   vistos.add(sku)
    
     # 2. Renderizado
     if productos_lista:
