@@ -199,9 +199,7 @@ if selected_sku:
             # ... tu lógica de tarjetas de detalle ...
             pass # Aquí va tu código original de la vista de detalle
 
-    # [Se mantiene tu lógica de col_grafica...]
-
-# --- VISTA 1: GALERÍA PRINCIPAL (MODIFICADA SOLO ESTA SECCIÓN) ---
+# --- VISTA 1: GALERÍA PRINCIPAL (CORRECCIÓN DE RENDERIZADO) ---
 else:
     st.title("🐾 Oferta Pet Chile")
     query = st.text_input("Busca tu producto...", placeholder="Ej: Leonardo, Cat it...")
@@ -218,24 +216,33 @@ else:
         cols = st.columns(5)
         for idx, row in enumerate(res.data):
             with cols[idx % 5]:
-                # OBTENER IMAGEN Y BADGE DINÁMICO
                 sku = row['mi_sku']
+                # Obtenemos imagen y medalla
                 img_url, estilo_badge, texto_badge = obtener_badge_ahorro(sku)
                 
-                # HTML de la tarjeta
-                badge_html = f'<div class="badge-ahorro" style="{estilo_badge}">{texto_badge}</div>' if estilo_badge else ""
+                # FALLBACK: Si no hay imagen, usamos un placeholder para evitar que se rompa el diseño
+                if not img_url:
+                    img_url = "https://via.placeholder.com/160?text=Sin+Imagen"
+
+                # UN SOLO BLOQUE HTML: Esto evita que Streamlit muestre el código como texto
+                # Usamos estilos inline simples para asegurar compatibilidad
+                badge_html = f'<div style="{estilo_badge} position:absolute; top:10px; left:10px; padding:2px 8px; border-radius:4px; font-weight:bold; font-size:10px; z-index:10;">{texto_badge}</div>' if estilo_badge else ""
                 
-                st.markdown(f'''
-                    <div class="product-card">
+                card_content = f'''
+                    <div style="background-color: white; border-radius: 12px; padding: 15px; border: 1px solid #eee; height: 320px; text-align: center; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center;">
                         {badge_html}
-                        <img src="{img_url}" style="width:100%; height:160px; object-fit:contain;" referrerpolicy="no-referrer">
-                        <div>
-                            <div class="product-title">{row['nombre_oficial']}</div>
-                            <div class="ver-detalle-text">Ver comparativa</div>
+                        <img src="{img_url}" style="width: 100%; height: 160px; object-fit: contain;" referrerpolicy="no-referrer">
+                        <div style="font-size: 14px; font-weight: 600; color: #2c3e50; margin-top: 15px; height: 40px; overflow: hidden; line-height: 1.2;">
+                            {row['nombre_oficial']}
                         </div>
+                        <div style="color: #1abc9c; font-weight: bold; font-size: 13px; margin-top: 10px;">Ver comparativa</div>
                     </div>
-                ''', unsafe_allow_html=True)
+                '''
                 
+                # Renderizamos el contenido visual
+                st.markdown(card_content, unsafe_allow_html=True)
+                
+                # El botón de Streamlit va FUERA del markdown para que sea interactivo
                 if st.button("Ver detalle", key=f"btn_{sku}", use_container_width=True):
                     st.query_params.sku = sku
                     st.rerun()
