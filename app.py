@@ -317,28 +317,62 @@ else:
     st.title("🐾 Oferta Pet Chile")
     query = st.text_input("Busca tu producto...", placeholder="Ej: Leonardo, Cat it...")
 
+    # 1. Lógica de búsqueda unificada
     if query:
         q = query.strip().upper()
-        res = supabase.table("SKUs_unicos").select("*").or_(f"nombre_oficial.ilike.%{q}%,mi_sku.ilike.%{q}%").execute()
+        
+        # A. Buscamos por nombre en SKUs unicos y Productos
+        res_sku = supabase.table("SKUs_unicos").select("*").ilike("nombre_oficial", f"%{q}%").execute()
+        res_prod = supabase.table("Productos").select("mi_sku, url_imagen, nombre_producto").ilike("nombre_producto", f"%{q}%").execute()
+        
+        # B. Unificamos para no repetir el mismo producto
+        vistos = set()
+        productos_lista = []
 
-        if res.data:
-            df_maestro = pd.DataFrame(res.data)
-            cols = st.columns(5)
-            for idx, row in df_maestro.iterrows():
-                with cols[idx % 5]:
-                    nombre_card = row.get('nombre_oficial', 'Producto')
-                    img_url = row.get('imagen_url_maestra', '')
-                    st.markdown(f'''
-                        <div class="product-card">
-                            <img src="{img_url}" style="width:100%; height:160px; object-fit:contain;">
-                            <div>
-                                <div class="product-title">{nombre_card}</div>
-                                <div class="ver-detalle-text">Ver comparativa</div>
-                            </div>
-                        </div>
-                    ''', unsafe_allow_html=True)
-                    if st.button("Ver detalle", key=f"btn_{row['mi_sku']}", use_container_width=True):
-                        st.query_params.sku = row['mi_sku']
-                        st.rerun()
-        else:
-            st.info("No hay resultados.")
+        # Prioridad a nombres oficiales
+        for s in res_sku.data:
+            if s['mi_sku'] not in vistos:
+                # Buscamos imagen rápida para el SKU oficial
+                img_res = supabase.table("Productos").select("url_imagen").eq("mi_sku", s['mi_sku']).limit(1).execute()
+                img = img_res.data[0]['url_imagen'] if img_res.data else ""
+                productos_lista.append({"id": s['mi_sku'], "nombre": s['nombre_oficial'], "img": img})
+                vistos.add(s['mi_sku'])
+
+        # Añadimos lo encontrado por nombre de tienda (útil para exclusivos o términos distintos)
+        for p in res_prod.data:
+            if p['mi_sku'] not in vistos:
+                productos_lista.append({"id": p['mi_sku'], "nombre": p['nombre_producto'], "img": p['url_imagen']})
+                vistos.add(p['mi_sku'])
+    else:
+        # Si no hay búsqueda, mostramos los últimos 20 SKUs de la tabla maestra
+        res_default = supabase.table("SKUs_unicos").select("*").limit(20).execute()
+        productos_lista = []
+        for s in res_default.data:
+            img_res = supabase.table("Productos").select("url_imagen").eq("mi_sku", s['mi_sku']).limit(1).execute()
+            img = img_res.data[0]['url_imagen'] if img_res.data else ""
+            productos_lista.append({"id": s['mi_sku'], "nombre": s['nombre_oficial'], "img": img})
+
+    # 2. Renderizado
+    if productos_lista:
+        cols = st.columns(5)
+        for idx, p in enumerate(productos_lista):
+            with cols[idx % 5]:
+                # Limpiamos nombre para el f-string
+                n_display = p['nombre'].replace('"', '').replace("'", "")
+                
+                st.markdown(
+                    f'<div class="product-card">'
+                    f'<img src="{p["img"]}" style="width:100%; height:150px; object-fit:contain;" referrerpolicy="no-referrer">'
+                    f'<div>'
+                    f'<div class="product-title" style="height:40px; overflow:hidden; font-size:12px; line-height:1.2;">{n_display}</div>'
+                    f'<div class="ver-detalle-text" style="color:#e67e22; font-weight:bold; font-size:11px; margin-top:5px;">Ver comparativa</div>'
+                    f'</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                
+                if st.button("Ver detalle", key=f"btn_{p['id']}_{idx}", use_container_width=True):
+                    st.query_params.sku = p['id']
+                    st.rerun()
+    else:
+        st.info("No se encontraron productos. Intenta con otra palabra.")
