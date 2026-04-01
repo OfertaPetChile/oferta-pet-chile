@@ -352,9 +352,7 @@ else:
                    "es_grupo": bool(p['mi_sku'])
                })
                vistos.add(id_ref)
-   else:
-       # INICIO: Traemos los últimos cargados pero ya con su imagen
-       # Usamos la tabla Productos directamente para evitar el bucle de imágenes
+    else:
        res_default = supabase.table("Productos")\
            .select("mi_sku, url_imagen, nombre_producto")\
            .not_.is_("mi_sku", "null")\
@@ -375,7 +373,6 @@ else:
                vistos.add(p['mi_sku'])
    
     else:
-        # Si no hay búsqueda, mostramos los últimos 20 SKUs de la tabla maestra
         res_default = supabase.table("SKUs_unicos").select("*").limit(20).execute()
         productos_lista = []
         for s in res_default.data:
