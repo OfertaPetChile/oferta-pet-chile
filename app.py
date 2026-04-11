@@ -343,10 +343,10 @@ if selected_sku:
                      hovermode="x unified"
                   )
                   st.plotly_chart(fig, use_container_width=True)
-              else:
+               else:
                   st.info(f"No hay registros históricos para el SKU: {selected_sku}")
-          else:
-              st.warning("El archivo de historial está vacío o no se pudo cargar.")
+        else:
+           st.warning("El archivo de historial está vacío o no se pudo cargar.")
 
 # --- VISTA 1: GALERÍA PRINCIPAL ---
 else:
