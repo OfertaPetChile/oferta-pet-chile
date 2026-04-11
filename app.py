@@ -3,6 +3,7 @@ from supabase import create_client
 import pandas as pd
 import plotly.graph_objects as go
 import plotly.colors as pc
+import requests
 
 # 1. Configuración de página
 st.set_page_config(
