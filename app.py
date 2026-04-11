@@ -21,19 +21,29 @@ supabase = create_client(url, key)
 # 3. Obtención de precios históricos para gráficas
 @st.cache_data(ttl=3600)
 def cargar_historial_json():
-    FILE_ID = "1SFyYA88cH250XJFueZOY_9IGbX7l37lb" 
-    url = f'https://drive.google.com/file/d/1SFyYA88cH250XJFueZOY_9IGbX7l37lb/view?usp=sharing' 
+    # ID extraído de tu enlace
+    FILE_ID = "1SFyYA88cH250XJFueZOY_9IGbX7l37lb"
+    
+    # Esta URL fuerza la descarga del archivo crudo
+    url = f'https://drive.google.com/uc?export=download&id={FILE_ID}&confirm=t'
+    
     try:
+        # Importante: requests debe estar importado arriba del archivo
         response = requests.get(url)
-        # Verificamos si la descarga fue exitosa
+        
         if response.status_code == 200:
-            data = response.json()
-            return pd.DataFrame(data)
+            # Verificamos que realmente llegó un JSON y no una página de error
+            contenido = response.text.strip()
+            if contenido.startswith(('[', '{')):
+                return pd.DataFrame(response.json())
+            else:
+                st.error("Google Drive mostró una pantalla de advertencia. Si el archivo es muy grande, te recomiendo subirlo a GitHub.")
+                return pd.DataFrame()
         else:
-            st.error(f"Error de Drive: Código {response.status_code}")
+            st.error(f"No se pudo acceder al archivo. Código: {response.status_code}")
             return pd.DataFrame()
     except Exception as e:
-        st.error(f"Error crítico al cargar: {e}")
+        st.error(f"Error al conectar con Drive: {e}")
         return pd.DataFrame()
 
 # --- LÓGICA DE NAVEGACIÓN ---
