@@ -21,7 +21,8 @@ supabase = create_client(url, key)
 # 3. Obtención de precios históricos para gráficas
 @st.cache_data(ttl=3600)
 def cargar_historial_json():
-    FILE_ID = "historial_precios.json" 
+    FILE_ID = "1SFyYA88cH250XJFueZOY_9IGbX7l37lb" 
+    url = f'https://drive.google.com/file/d/1SFyYA88cH250XJFueZOY_9IGbX7l37lb/view?usp=sharing' 
     try:
         response = requests.get(url)
         # Verificamos si la descarga fue exitosa
