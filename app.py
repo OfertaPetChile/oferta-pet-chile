@@ -131,8 +131,15 @@ if selected_sku:
     df_resumen = pd.DataFrame(resumen_tiendas)
     
     # --- MAPA DE COLORES Y PRIORIDAD ---
-    mapa_colores = {t: colores_fijos.get(t, pc.qualitative.Alphabet[i % 26]) 
-                    for i, t in enumerate(df_resumen['Tienda'].unique())}
+    tiendas_unicas = df_resumen['Tienda'].unique()
+    mapa_colores = {}
+    
+    for i, t in enumerate(tiendas_unicas):
+        if t in colores_fijos:
+            mapa_colores[t] = colores_fijos[t]
+        else:
+            # Si la tienda es nueva, le asigna un color del alfabeto de Plotly
+            mapa_colores[t] = pc.qualitative.Alphabet[i % 26]
     
     df_resumen['Dispo_limpia'] = df_resumen['Disponibilidad'].astype(str).str.strip().str.capitalize()
     df_resumen['prioridad_stock'] = df_resumen['Dispo_limpia'].apply(lambda x: 0 if "Disponible" in x or "Stock" in x else 1)
