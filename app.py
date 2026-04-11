@@ -335,18 +335,18 @@ if selected_sku:
                         hovertemplate='%{x|%d %b}: <b>$%{y:,.0f}</b>'
                      ))
                 
-                fig.update_layout(
-                    template="plotly_white", 
-                    height=500, 
-                    margin=dict(l=0,r=0,t=10,b=0),
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                    hovermode="x unified"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info(f"No hay registros históricos para el SKU: {selected_sku}")
-        else:
-            st.warning("El archivo de historial está vacío o no se pudo cargar.")
+                  fig.update_layout(
+                     template="plotly_white", 
+                     height=500, 
+                     margin=dict(l=0,r=0,t=10,b=0),
+                     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                     hovermode="x unified"
+                  )
+                  st.plotly_chart(fig, use_container_width=True)
+              else:
+                  st.info(f"No hay registros históricos para el SKU: {selected_sku}")
+          else:
+              st.warning("El archivo de historial está vacío o no se pudo cargar.")
 
 # --- VISTA 1: GALERÍA PRINCIPAL ---
 else:
