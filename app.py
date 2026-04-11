@@ -24,10 +24,15 @@ def cargar_historial_json():
     FILE_ID = "historial_precios.json" 
     try:
         response = requests.get(url)
-        # Como es una lista [...], la convertimos directo a DataFrame para que sea veloz
-        return pd.DataFrame(response.json())
+        # Verificamos si la descarga fue exitosa
+        if response.status_code == 200:
+            data = response.json()
+            return pd.DataFrame(data)
+        else:
+            st.error(f"Error de Drive: Código {response.status_code}")
+            return pd.DataFrame()
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Error crítico al cargar: {e}")
         return pd.DataFrame()
 
 # --- LÓGICA DE NAVEGACIÓN ---
@@ -308,28 +313,27 @@ if selected_sku:
             df_h = historial_maestro[historial_maestro['mi_sku'] == selected_sku].copy()
             
             if not df_h.empty:
-                # Convertimos fecha al formato correcto (según tu imagen es DD-MM-YYYY)
-                df_h['fecha'] = pd.to_datetime(df_h['fecha'], dayfirst=True)
-                df_h = df_h.sort_values(by="fecha")
+               # Ajustamos la fecha según tu formato 10-04-2026
+               df_h['fecha'] = pd.to_datetime(df_h['fecha'], dayfirst=True)
+               df_h = df_h.sort_values(by="fecha")
 
-                fig = go.Figure()
-                
-                # 'seleccion_tiendas' contiene las tiendas marcadas en los checkboxes
-                tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
+               fig = go.Figure()
+               # 'seleccion_tiendas' contiene las tiendas marcadas en los checkboxes
+               tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
+               
+               for t in tiendas_a_graficar:
+                  # Filtramos por tienda dentro del set del SKU
+                  df_t = df_h[df_h['tienda'] == t]
 
-                for t in tiendas_a_graficar:
-                    # Filtramos por tienda dentro del set del SKU
-                    df_t = df_h[df_h['tienda'] == t]
-                    
-                    if not df_t.empty:
-                        fig.add_trace(go.Scatter(
-                            x=df_t['fecha'], 
-                            y=df_t['precio'],
-                            name=t, 
-                            mode='lines+markers',
-                            line=dict(color=mapa_colores.get(t, "#333"), width=3),
-                            hovertemplate='%{x|%d %b}: <b>$%{y:,.0f}</b>'
-                        ))
+                  if not df_t.empty:
+                     fig.add_trace(go.Scatter(
+                        x=df_t['fecha'], 
+                        y=df_t['precio'],
+                        name=t, 
+                        mode='lines+markers',
+                        line=dict(color=mapa_colores.get(t, "#333"), width=3),
+                        hovertemplate='%{x|%d %b}: <b>$%{y:,.0f}</b>'
+                     ))
                 
                 fig.update_layout(
                     template="plotly_white", 
