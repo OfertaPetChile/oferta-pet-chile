@@ -131,6 +131,28 @@ if selected_sku:
     df_resumen = pd.DataFrame(resumen_tiendas)
     
     # --- MAPA DE COLORES Y PRIORIDAD ---
+    # 1. Definimos primero el diccionario de colores (asegúrate de que esté ANTES del error)
+    colores_fijos = {
+        "Punto Mascotas": "#a6a6a6",   
+        "LH Petshop": "#326475",       
+        "Distribuidora Lira": "#cd0201", 
+        "Pet Kingdom": "#6b1e46",      
+        "Laika": "#5e17eb",            
+        "PetBJ": "#0c15f5",            
+        "Amigales": "#00b0f0",         
+        "Superzoo": "#d504b9",         
+        "JardinZoo": "#31ab5c",        
+        "Tus Mascotas": "#c1ff72",     
+        "Laika Member": "#9662fe",     
+        "Petvet Repet": "#e2c78a",    
+        "BestForPets": "#C4FF1A",      
+        "Braloy": "#8aeef2",           
+        "Razaspet": "#ffcc11",        
+        "Petvet": "#907740",           
+        "CPyG": "#fb8bd0",            
+    } 
+
+    # 2. Ahora generamos el mapa de colores (esto ya no debería dar error)
     tiendas_unicas = df_resumen['Tienda'].unique()
     mapa_colores = {}
     
@@ -138,7 +160,6 @@ if selected_sku:
         if t in colores_fijos:
             mapa_colores[t] = colores_fijos[t]
         else:
-            # Si la tienda es nueva, le asigna un color del alfabeto de Plotly
             mapa_colores[t] = pc.qualitative.Alphabet[i % 26]
     
     df_resumen['Dispo_limpia'] = df_resumen['Disponibilidad'].astype(str).str.strip().str.capitalize()
