@@ -319,53 +319,49 @@ if selected_sku:
         st.markdown("#### 📈 Evolución Histórica")
         
         if not historial_maestro.empty:
-            # 1. Filtro estricto por SKU
+            # 1. Filtramos el JSON por el SKU seleccionado
+            # Esto nos da todas las tiendas y todas las fechas de ese producto
             df_h = historial_maestro[historial_maestro['mi_sku'] == selected_sku].copy()
             
             if not df_h.empty:
-                # 2. Conversión de fecha (asegurando formato chileno)
-                df_h['fecha'] = pd.to_datetime(df_h['fecha'], dayfirst=True, errors='coerce')
-                df_h = df_h.dropna(subset=['fecha']).sort_values(by="fecha")
+                # 2. Aseguramos que la fecha sea reconocida como tiempo por Plotly
+                df_h['fecha'] = pd.to_datetime(df_h['fecha'], dayfirst=True)
+                df_h = df_h.sort_values(by="fecha")
 
                 fig = go.Figure()
 
-                # 3. Tiendas marcadas en los checkboxes
+                # 3. Tiendas que el usuario marcó a la izquierda
                 tiendas_a_graficar = [t for t, v in seleccion_tiendas.items() if v["active"]]
                 
-                # Variable para verificar si realmente graficamos algo
-                trazas_añadidas = 0
-
                 for t in tiendas_a_graficar:
-                    # Filtro por tienda (ya con apellido incluido)
+                    # Filtramos las filas que pertenecen a esta tienda específica
+                    # Importante: El nombre en el JSON debe ser EXACTO al de la izquierda
                     df_t = df_h[df_h['tienda'] == t]
 
                     if not df_t.empty:
                         fig.add_trace(go.Scatter(
                             x=df_t['fecha'], 
                             y=df_t['precio'],
-                            name=t, 
+                            name=t, # Nombre que aparecerá en la leyenda
                             mode='lines+markers',
-                            line=dict(color=mapa_colores.get(t.split(' ')[0], "#333"), width=3), # Color por 'Tienda Madre'
-                            hovertemplate='<b>' + t + '</b><br>%{x|%d %b}: <b>$%{y:,.0f}</b>'
+                            line=dict(color=mapa_colores.get(t, "#333"), width=3),
+                            hovertemplate='<b>%{text}</b><br>%{x|%d %b}: <b>$%{y:,.0f}</b>',
+                            text=[t] * len(df_t) # Para que el hover diga el nombre de la tienda
                         ))
-                        trazas_añadidas += 1
                 
-                if trazas_añadidas > 0:
-                    fig.update_layout(
-                        template="plotly_white", 
-                        height=500, 
-                        margin=dict(l=0,r=0,t=10,b=0),
-                        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-                        hovermode="x unified",
-                        xaxis=dict(tickformat="%d-%m", type='date') # Forzamos eje temporal
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.info("Selecciona tiendas a la izquierda para comparar.")
+                fig.update_layout(
+                    template="plotly_white", 
+                    height=500, 
+                    margin=dict(l=0,r=0,t=10,b=0),
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+                    hovermode="x unified",
+                    xaxis=dict(tickformat="%d-%m")
+                )
+                st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info(f"No hay registros históricos para el SKU: {selected_sku}")
+                st.info(f"No hay registros en el JSON para el SKU: {selected_sku}")
         else:
-            st.warning("El archivo de historial no se pudo cargar.")
+            st.warning("No se pudo cargar el historial (JSON vacío o error de lectura).")
 
 # --- VISTA 1: GALERÍA PRINCIPAL ---
 else:
